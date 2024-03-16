@@ -1,0 +1,15 @@
+name: ff_alarm_server
+description: "Eine Alarmierungsapp für freiwillige Feuerwehren."
+version: 1.0.0
+
+environment:
+  sdk: ^3.3.1
+
+dependencies:
+  intl: any
+  postgres: 2.5.2
+  # path: ^1.8.0
+
+dev_dependencies:
+  lints: ^3.0.0
+  test: ^1.24.0
