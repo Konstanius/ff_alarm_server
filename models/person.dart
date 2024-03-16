@@ -1,4 +1,5 @@
 import '../utils/database.dart';
+import 'alarm.dart';
 import 'unit.dart';
 
 class Person {
@@ -9,6 +10,7 @@ class Person {
   String qualifications;
   List<String> fcmTokens;
   String registrationKey;
+  AlarmResponse response;
   DateTime updated;
 
   Person({
@@ -19,6 +21,7 @@ class Person {
     required this.qualifications,
     required this.fcmTokens,
     required this.registrationKey,
+    required this.response,
     required this.updated,
   });
 
@@ -28,6 +31,7 @@ class Person {
     "lastName": "l",
     "allowedUnits": "au",
     "qualifications": "q",
+    "response": "r",
     "updated": "up",
   };
 
@@ -38,6 +42,7 @@ class Person {
       jsonShorts["lastName"]!: lastName,
       jsonShorts["allowedUnits"]!: allowedUnits,
       jsonShorts["qualifications"]!: qualifications,
+      jsonShorts["response"]!: response.toJson(),
       jsonShorts["updated"]!: updated.millisecondsSinceEpoch,
     };
   }
@@ -51,6 +56,7 @@ class Person {
       qualifications: data["qualifications"],
       fcmTokens: data["fcmtokens"],
       registrationKey: data["registrationkey"],
+      response: AlarmResponse.fromJson(data["response"]),
       updated: DateTime.fromMillisecondsSinceEpoch(data["updated"]),
     );
   }
@@ -64,6 +70,7 @@ class Person {
       "qualifications": qualifications,
       "fcmtokens": fcmTokens,
       "registrationkey": registrationKey,
+      "response": response.toJson(),
       "updated": updated.millisecondsSinceEpoch,
     };
   }
@@ -84,6 +91,7 @@ class Person {
           "qualifications TEXT,"
           "fcmtokens TEXT[],"
           "registrationkey TEXT,"
+          "response JSONB,"
           "updated BIGINT"
           ");");
     }
@@ -105,7 +113,7 @@ class Person {
   static Future<void> insert(Person person) async {
     person.updated = DateTime.now();
     await Database.connection.query(
-      "INSERT INTO persons (id, firstname, lastname, allowedunits, qualifications, fcmtokens, registrationkey, updated) @id, @firstname, @lastname, @allowedunits, @qualifications, @fcmtokens, @registrationkey, @updated;",
+      "INSERT INTO persons (id, firstname, lastname, allowedunits, qualifications, fcmtokens, registrationkey, response, updated) @id, @firstname, @lastname, @allowedunits, @qualifications, @fcmtokens, @registrationkey, @response, @updated;",
       substitutionValues: person.toDatabase(),
     );
   }
@@ -113,7 +121,7 @@ class Person {
   static Future<void> update(Person person) async {
     person.updated = DateTime.now();
     await Database.connection.query(
-      "UPDATE persons SET firstname = @firstname, lastname = @lastname, allowedunits = @allowedunits, qualifications = @qualifications, fcmtokens = @fcmtokens, registrationkey = @registrationkey, updated = @updated WHERE id = @id;",
+      "UPDATE persons SET firstname = @firstname, lastname = @lastname, allowedunits = @allowedunits, qualifications = @qualifications, fcmtokens = @fcmtokens, registrationkey = @registrationkey, response = @response, updated = @updated WHERE id = @id;",
       substitutionValues: person.toDatabase(),
     );
   }

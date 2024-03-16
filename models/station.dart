@@ -152,4 +152,9 @@ class Station {
   static Future<void> deleteById(int id) async {
     await Database.connection.query("DELETE FROM stations WHERE id = @id;", substitutionValues: {"id": id});
   }
+
+  static Future<List<Station>> getByIds(Iterable<int> involvedStationIds) async {
+    var result = await Database.connection.query("SELECT * FROM stations WHERE id = ANY(@ids);", substitutionValues: {"ids": involvedStationIds});
+    return result.map((e) => Station.fromDatabase(e.toColumnMap())).toList();
+  }
 }

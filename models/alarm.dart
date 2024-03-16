@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import '../utils/database.dart';
+import 'person.dart';
+import 'station.dart';
 import 'unit.dart';
 
 class Alarm {
@@ -13,6 +15,7 @@ class Alarm {
   String address;
   List<String> notes;
   List<int> units;
+  Map<int, AlarmResponse> responses;
   DateTime updated;
 
   Alarm({
@@ -24,6 +27,7 @@ class Alarm {
     required this.address,
     required this.notes,
     required this.units,
+    this.responses = const {},
     required this.updated,
   });
 
@@ -36,6 +40,7 @@ class Alarm {
     "address": "a",
     "notes": "no",
     "units": "u",
+    "responses": "r",
     "updated": "up",
   };
 
@@ -49,6 +54,13 @@ class Alarm {
       address: json[jsonShorts["address"]],
       notes: List<String>.from(json[jsonShorts["notes"]]),
       units: List<int>.from(json[jsonShorts["units"]]),
+      responses: (){
+        Map<int, AlarmResponse> responses = {};
+        json[jsonShorts["responses"]].forEach((key, value) {
+          responses[int.parse(key)] = AlarmResponse.fromJson(value);
+        });
+        return responses;
+      }(),
       updated: DateTime.fromMillisecondsSinceEpoch(json[jsonShorts["updated"]]),
     );
   }
@@ -63,6 +75,7 @@ class Alarm {
       jsonShorts["address"]!: address,
       jsonShorts["notes"]!: notes,
       jsonShorts["units"]!: units,
+      jsonShorts["responses"]!: responses.map((key, value) => MapEntry(key.toString(), value.toJson())),
       jsonShorts["updated"]!: updated.millisecondsSinceEpoch,
     };
   }
@@ -85,6 +98,14 @@ class Alarm {
       address: data["address"],
       notes: data["notes"],
       units: data["units"],
+      responses: (){
+        Map<int, AlarmResponse> responses = {};
+        data["responses"].forEach((key, value) {
+          responses[int.parse(key)] = AlarmResponse.fromJson(value);
+        });
+        return responses;
+
+      }(),
       updated: DateTime.fromMillisecondsSinceEpoch(data["updated"]),
     );
   }
@@ -99,6 +120,7 @@ class Alarm {
       "address": address,
       "notes": notes,
       "units": units,
+      "responses": responses.map((key, value) => MapEntry(key.toString(), value.toJson())),
       "updated": updated.millisecondsSinceEpoch,
     };
   }
@@ -120,6 +142,7 @@ class Alarm {
           "address TEXT,"
           "notes TEXT[],"
           "units INTEGER[],"
+          "responses JSONB,"
           "updated BIGINT"
           ");");
     }
@@ -141,7 +164,7 @@ class Alarm {
   static Future<void> insert(Alarm alarm) async {
     alarm.updated = DateTime.now();
     await Database.connection.query(
-      "INSERT INTO alarms (type, word, date, number, address, notes, units, updated) VALUES (@type, @word, @date, @number, @address, @notes, @units, @updated);",
+      "INSERT INTO alarms (type, word, date, number, address, notes, units, responses, updated) VALUES (@type, @word, @date, @number, @address, @notes, @units, @responses, @updated);",
       substitutionValues: alarm.toDatabase(),
     );
   }
@@ -149,7 +172,7 @@ class Alarm {
   static Future<void> update(Alarm alarm) async {
     alarm.updated = DateTime.now();
     await Database.connection.query(
-      "UPDATE alarms SET type = @type, word = @word, date = @date, number = @number, address = @address, notes = @notes, units = @units, updated = @updated WHERE id = @id;",
+      "UPDATE alarms SET type = @type, word = @word, date = @date, number = @number, address = @address, notes = @notes, units = @units, responses = @responses, updated = @updated WHERE id = @id;",
       substitutionValues: alarm.toDatabase(),
     );
   }
@@ -170,5 +193,49 @@ class Alarm {
       alarms.addAll(await getForUnit(unit.id));
     }
     return alarms;
+  }
+
+  Future<List<Unit>> getUnits() async {
+    return Unit.getByIds(units);
+  }
+
+  Future<bool> canSee(Person person) async {
+    if (responses.containsKey(person.id)) return true;
+    if (date.isBefore(DateTime.now().subtract(const Duration(days: 90)))) return false;
+
+    var involvedUnits = await getUnits();
+    var involvedStationIds = involvedUnits.map((e) => e.stationId).toSet();
+
+    var stations = await Station.getByIds(involvedStationIds);
+    for (var station in stations) {
+      if (station.persons.contains(person.id)) return true;
+      if (station.adminPersons.contains(person.id)) return true;
+    }
+
+    return false;
+  }
+}
+
+class AlarmResponse {
+  String? note;
+  DateTime? time;
+  int? duration;
+
+  AlarmResponse({this.note, this.time, this.duration});
+
+  factory AlarmResponse.fromJson(Map<String, dynamic> json) {
+    return AlarmResponse(
+      note: json['n'],
+      time: json['t'] != null ? DateTime.fromMillisecondsSinceEpoch(json['t']) : null,
+      duration: json['d'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'n': note,
+      't': time?.millisecondsSinceEpoch,
+      'd': duration,
+    };
   }
 }

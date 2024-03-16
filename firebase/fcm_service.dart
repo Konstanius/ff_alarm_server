@@ -39,12 +39,12 @@ Future<void> startFCMService() async {
 
           // Remove the token from all persons in a single pgsql query
           await Database.connection.query(
-            "UPDATE persons SET fcmtokens = array_remove(fcmtokens, '$tokenA') WHERE @tokenA = ANY(fcmtokens);",
-            substitutionValues: {"tokenA": tokenA, "tokenI": tokenI},
+            "UPDATE persons SET fcmtokens = array_remove(fcmtokens, @tokenA) WHERE @tokenA = ANY(fcmtokens);",
+            substitutionValues: {"tokenA": tokenA},
           );
 
           await Database.connection.query(
-            "UPDATE persons SET fcmtokens = array_remove(fcmtokens, '$tokenI') WHERE @tokenI = ANY(fcmtokens);",
+            "UPDATE persons SET fcmtokens = array_remove(fcmtokens, @tokenI) WHERE @tokenI = ANY(fcmtokens);",
             substitutionValues: {"tokenI": tokenI},
           );
         } catch (e, s) {

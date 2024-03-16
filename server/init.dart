@@ -56,41 +56,47 @@ Future<void> initServer() async {
         }
 
         await callback(HttpStatus.unauthorized, {"error": "unauthorized", "message": "Kein Zugriff auf diese Resource"});
+        print('No authorization header');
         return;
       }
 
       String? rawAuth = request.headers.value('authorization');
       if (rawAuth == null) {
         await callback(HttpStatus.unauthorized, {"error": "unauthorized", "message": "Kein Zugriff auf diese Resource"});
+        print('No rawAuth');
         return;
       }
 
       String decodedAuth = utf8.decode(gzip.decode(base64.decode(rawAuth)));
       if (!decodedAuth.contains(':')) {
         await callback(HttpStatus.unauthorized, {"error": "unauthorized", "message": "Kein Zugriff auf diese Resource"});
+        print('No colon in decodedAuth: $decodedAuth');
         return;
       }
 
       List<String> authParts = decodedAuth.split(':');
       int personId = int.parse(authParts[0]);
-      String token = authParts[1];
+      String key = authParts[1];
 
       Person? person;
       try {
         person = await Person.getById(personId);
       } catch (e) {
         await callback(HttpStatus.internalServerError, {"error": "unauthorized", "message": "Kein Zugriff auf diese Resource"});
+        print('Error getting person by ID: $e');
         return;
       }
 
-      if (person.registrationKey != token) {
+      if (person.registrationKey != key) {
         await callback(HttpStatus.unauthorized, {"error": "unauthorized", "message": "Kein Zugriff auf diese Resource"});
+        print('Registration key does not match');
         return;
       }
 
       AuthMethod authMethod = AuthMethod.fromName(keyword);
       if (authMethod == AuthMethod.none) {
         await callback(HttpStatus.notFound, {"error": "not_found", "message": "Die angeforderte Resource wurde nicht gefunden"});
+        print('No auth method found for keyword: $keyword');
         return;
       }
 
@@ -114,7 +120,7 @@ Future<void> initServer() async {
         await Person.update(person);
       }
 
-      await authMethod.handle(data!, callback);
+      await authMethod.handle(person, data!, callback);
     } catch (e, s) {
       request.response.statusCode = HttpStatus.internalServerError;
       outln("Internal server error: $e\n$s", Color.error);

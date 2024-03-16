@@ -150,6 +150,11 @@ class Unit {
   static Future<void> deleteById(int id) async {
     await Database.connection.query("DELETE FROM units WHERE id = @id;", substitutionValues: {"id": id});
   }
+
+  static Future<List<Unit>> getByIds(Iterable<int> units) async {
+    var result = await Database.connection.query("SELECT * FROM units WHERE id = ANY(@units);", substitutionValues: {"units": units});
+    return result.map((e) => Unit.fromDatabase(e.toColumnMap())).toList();
+  }
 }
 
 enum UnitPosition {
