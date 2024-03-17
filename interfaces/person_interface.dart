@@ -5,8 +5,12 @@ import '../models/person.dart';
 abstract class PersonInterface {
   static Future<void> getAll(Person person, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
     Map<int, DateTime> updates = {};
-    for (var entry in data.entries) {
-      updates[int.parse(entry.key)] = DateTime.fromMillisecondsSinceEpoch(entry.value);
+
+    var split = data["data"].split(",");
+    for (var entry in split) {
+      if (entry.isEmpty) continue;
+      var splitDate = entry.split(":");
+      updates[int.parse(splitDate[0])] = DateTime.fromMillisecondsSinceEpoch(int.parse(splitDate[1]));
     }
 
     List<Person> persons = await Person.getAll();
@@ -20,9 +24,9 @@ abstract class PersonInterface {
     }
 
     var deleted = <int>[];
-    for (var entry in data.entries) {
-      if (!canSee.contains(int.parse(entry.key))) {
-        deleted.add(int.parse(entry.key));
+    for (var entry in updates.entries) {
+      if (!canSee.contains(entry.key)) {
+        deleted.add(entry.key);
       }
     }
 

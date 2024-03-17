@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 
+import '../server/init.dart';
 import '../utils/database.dart';
+import '../utils/generic.dart';
 import 'person.dart';
 import 'station.dart';
 import 'unit.dart';
@@ -54,7 +56,7 @@ class Alarm {
       address: json[jsonShorts["address"]],
       notes: List<String>.from(json[jsonShorts["notes"]]),
       units: List<int>.from(json[jsonShorts["units"]]),
-      responses: (){
+      responses: () {
         Map<int, AlarmResponse> responses = {};
         json[jsonShorts["responses"]].forEach((key, value) {
           responses[int.parse(key)] = AlarmResponse.fromJson(value);
@@ -98,13 +100,12 @@ class Alarm {
       address: data["address"],
       notes: data["notes"],
       units: data["units"],
-      responses: (){
+      responses: () {
         Map<int, AlarmResponse> responses = {};
         data["responses"].forEach((key, value) {
           responses[int.parse(key)] = AlarmResponse.fromJson(value);
         });
         return responses;
-
       }(),
       updated: DateTime.fromMillisecondsSinceEpoch(data["updated"]),
     );
@@ -151,7 +152,7 @@ class Alarm {
   static Future<Alarm> getById(int id) async {
     var result = await Database.connection.query("SELECT * FROM alarms WHERE id = $id;");
     if (result.isEmpty) {
-      throw "No alarm found with id $id";
+      throw RequestException(HttpStatus.notFound, "Die Alarmierung konnte nicht gefunden werden.");
     }
     return Alarm.fromDatabase(result[0].toColumnMap());
   }
@@ -167,6 +168,7 @@ class Alarm {
       "INSERT INTO alarms (type, word, date, number, address, notes, units, responses, updated) VALUES (@type, @word, @date, @number, @address, @notes, @units, @responses, @updated);",
       substitutionValues: alarm.toDatabase(),
     );
+    Alarm.broadcastChange(alarm);
   }
 
   static Future<void> update(Alarm alarm) async {
@@ -175,10 +177,12 @@ class Alarm {
       "UPDATE alarms SET type = @type, word = @word, date = @date, number = @number, address = @address, notes = @notes, units = @units, responses = @responses, updated = @updated WHERE id = @id;",
       substitutionValues: alarm.toDatabase(),
     );
+    Alarm.broadcastChange(alarm);
   }
 
   static Future<void> delete(int id) async {
     await Database.connection.query("DELETE FROM alarms WHERE id = $id;");
+    Alarm.broadcastDelete(id);
   }
 
   static Future<List<Alarm>> getForUnit(int unitId) async {
@@ -209,10 +213,34 @@ class Alarm {
     var stations = await Station.getByIds(involvedStationIds);
     for (var station in stations) {
       if (station.persons.contains(person.id)) return true;
-      if (station.adminPersons.contains(person.id)) return true;
     }
 
     return false;
+  }
+
+  Future<Set<int>> getInvolvedPersonIds() async {
+    var result = await Database.connection.query(
+      "SELECT id FROM persons WHERE @units && allowedunits;",
+      substitutionValues: {"units": units},
+    );
+    return result.map((e) => e[0] as int).toSet();
+  }
+
+  static Future<void> broadcastChange(Alarm alarm) async {
+    var involvedPersonIds = await alarm.getInvolvedPersonIds();
+
+    var json = alarm.toJson();
+    for (var connection in realtimeConnections) {
+      if (involvedPersonIds.contains(connection.personId)) {
+        connection.send("alarm", json);
+      }
+    }
+  }
+
+  static Future<void> broadcastDelete(int alarmId) async {
+    for (var connection in realtimeConnections) {
+      connection.send("alarm_delete", {"id": alarmId});
+    }
   }
 }
 
@@ -220,14 +248,16 @@ class AlarmResponse {
   String? note;
   DateTime? time;
   int? duration;
+  int? stationId;
 
-  AlarmResponse({this.note, this.time, this.duration});
+  AlarmResponse({this.note, this.time, this.duration, this.stationId});
 
   factory AlarmResponse.fromJson(Map<String, dynamic> json) {
     return AlarmResponse(
       note: json['n'],
       time: json['t'] != null ? DateTime.fromMillisecondsSinceEpoch(json['t']) : null,
       duration: json['d'],
+      stationId: json['s'],
     );
   }
 
@@ -236,6 +266,7 @@ class AlarmResponse {
       'n': note,
       't': time?.millisecondsSinceEpoch,
       'd': duration,
+      's': stationId,
     };
   }
 }

@@ -1,5 +1,10 @@
+import 'dart:io';
+
+import '../server/init.dart';
 import '../utils/database.dart';
+import '../utils/generic.dart';
 import 'alarm.dart';
+import 'station.dart';
 import 'unit.dart';
 
 class Person {
@@ -100,7 +105,7 @@ class Person {
   static Future<Person> getById(int id) async {
     var result = await Database.connection.query("SELECT * FROM persons WHERE id = $id;");
     if (result.isEmpty) {
-      throw Exception("No person found with id $id");
+      throw RequestException(HttpStatus.notFound, "Die Person konnte nicht gefunden werden.");
     }
     return Person.fromDatabase(result[0].toColumnMap());
   }
@@ -116,25 +121,28 @@ class Person {
       "INSERT INTO persons (id, firstname, lastname, allowedunits, qualifications, fcmtokens, registrationkey, response, updated) @id, @firstname, @lastname, @allowedunits, @qualifications, @fcmtokens, @registrationkey, @response, @updated;",
       substitutionValues: person.toDatabase(),
     );
+    Person.broadcastChange(person);
   }
-  
+
   static Future<void> update(Person person) async {
     person.updated = DateTime.now();
     await Database.connection.query(
       "UPDATE persons SET firstname = @firstname, lastname = @lastname, allowedunits = @allowedunits, qualifications = @qualifications, fcmtokens = @fcmtokens, registrationkey = @registrationkey, response = @response, updated = @updated WHERE id = @id;",
       substitutionValues: person.toDatabase(),
     );
+    Person.broadcastChange(person);
   }
-  
+
   static Future<void> delete(int id) async {
     await Database.connection.query("DELETE FROM persons WHERE id = $id;");
+    Person.broadcastDelete(id);
   }
-  
+
   static Future<List<Person>> getByUnitId(int unitId) async {
     var result = await Database.connection.query("SELECT * FROM persons WHERE $unitId = ANY(allowedunits);");
     return result.map((e) => Person.fromDatabase(e.toColumnMap())).toList();
   }
-  
+
   static Future<List<Person>> getByStationId(int stationId) async {
     List<Unit> units = await Unit.getByStationId(stationId);
     List<Person> persons = [];
@@ -142,5 +150,31 @@ class Person {
       persons.addAll(await getByUnitId(unit.id));
     }
     return persons;
+  }
+
+  static Future<Set<int>> personsThatCanSee(int personId) async {
+    var stations = await Station.getByPersonId(personId);
+    Set<int> canSee = {};
+    for (var station in stations) {
+      canSee.addAll(station.persons);
+    }
+    return canSee;
+  }
+
+  static Future<void> broadcastChange(Person person) async {
+    var involvedPersonIds = await personsThatCanSee(person.id);
+
+    var json = person.toJson();
+    for (var connection in realtimeConnections) {
+      if (involvedPersonIds.contains(connection.personId)) {
+        connection.send("person", json);
+      }
+    }
+  }
+
+  static Future<void> broadcastDelete(int personId) async {
+    for (var connection in realtimeConnections) {
+      connection.send("person_delete", {"id": personId});
+    }
   }
 }

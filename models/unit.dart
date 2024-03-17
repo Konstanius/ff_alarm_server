@@ -1,4 +1,8 @@
+import 'dart:io';
+
+import '../server/init.dart';
 import '../utils/database.dart';
+import '../utils/generic.dart';
 
 class Unit {
   final int id;
@@ -116,7 +120,7 @@ class Unit {
   static Future<Unit> getById(int id) async {
     var result = await Database.connection.query("SELECT * FROM units WHERE id = @id;", substitutionValues: {"id": id});
     if (result.isEmpty) {
-      throw "No unit found with id $id";
+      throw RequestException(HttpStatus.notFound, "Die Einheit konnte nicht gefunden werden.");
     }
     return Unit.fromDatabase(result[0].toColumnMap());
   }
@@ -137,6 +141,7 @@ class Unit {
       "INSERT INTO units (id, stationid, unittype, unitidentifier, unitdescription, status, positions, capacity, updated) VALUES (@id, @stationid, @unittype, @unitidentifier, @unitdescription, @status, @positions, @capacity, @updated);",
       substitutionValues: unit.toDatabase(),
     );
+    Unit.broadcastChange(unit);
   }
 
   static Future<void> update(Unit unit) async {
@@ -145,15 +150,30 @@ class Unit {
       "UPDATE units SET stationid = @stationid, unittype = @unittype, unitidentifier = @unitidentifier, unitdescription = @unitdescription, status = @status, positions = @positions, capacity = @capacity, updated = @updated WHERE id = @id;",
       substitutionValues: unit.toDatabase(),
     );
+    Unit.broadcastChange(unit);
   }
 
   static Future<void> deleteById(int id) async {
     await Database.connection.query("DELETE FROM units WHERE id = @id;", substitutionValues: {"id": id});
+    Unit.broadcastDelete(id);
   }
 
   static Future<List<Unit>> getByIds(Iterable<int> units) async {
     var result = await Database.connection.query("SELECT * FROM units WHERE id = ANY(@units);", substitutionValues: {"units": units});
     return result.map((e) => Unit.fromDatabase(e.toColumnMap())).toList();
+  }
+
+  static Future<void> broadcastChange(Unit unit) async {
+    var json = unit.toJson();
+    for (var connection in realtimeConnections) {
+      connection.send("unit", json);
+    }
+  }
+
+  static Future<void> broadcastDelete(int id) async {
+    for (var connection in realtimeConnections) {
+      connection.send("unit_delete", {"id": id});
+    }
   }
 }
 

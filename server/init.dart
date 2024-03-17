@@ -3,22 +3,24 @@ import 'dart:io';
 
 import '../models/person.dart';
 import '../utils/console.dart';
+import '../utils/generic.dart';
 import 'auth_method.dart';
 
 Future<void> initServer() async {
-  HttpServer server = await HttpServer.bind('0.0.0.0', 3000);
+  startRealtimeWatchThread();
 
+  HttpServer server = await HttpServer.bind('0.0.0.0', 3000);
   server.listen((HttpRequest request) async {
     try {
       Uri uri = request.uri;
-      if (uri.pathSegments.length < 2) {
+      if (uri.pathSegments.length < 2 && uri.pathSegments.lastOrNull != 'realtime') {
         request.response.statusCode = HttpStatus.notFound;
         await request.response.flush();
         await request.response.close();
         return;
       }
 
-      if (uri.pathSegments[0] != 'api') {
+      if (uri.pathSegments[0] != 'api' && uri.pathSegments[0] != 'realtime') {
         request.response.statusCode = HttpStatus.notFound;
         await request.response.flush();
         await request.response.close();
@@ -31,6 +33,11 @@ Future<void> initServer() async {
         request.response.statusCode = HttpStatus.ok;
         await request.response.flush();
         await request.response.close();
+        return;
+      }
+
+      if (uri.pathSegments[0] == 'realtime') {
+        await handleRealtime(request);
         return;
       }
 
@@ -56,21 +63,18 @@ Future<void> initServer() async {
         }
 
         await callback(HttpStatus.unauthorized, {"error": "unauthorized", "message": "Kein Zugriff auf diese Resource"});
-        print('No authorization header');
         return;
       }
 
       String? rawAuth = request.headers.value('authorization');
       if (rawAuth == null) {
         await callback(HttpStatus.unauthorized, {"error": "unauthorized", "message": "Kein Zugriff auf diese Resource"});
-        print('No rawAuth');
         return;
       }
 
       String decodedAuth = utf8.decode(gzip.decode(base64.decode(rawAuth)));
       if (!decodedAuth.contains(':')) {
         await callback(HttpStatus.unauthorized, {"error": "unauthorized", "message": "Kein Zugriff auf diese Resource"});
-        print('No colon in decodedAuth: $decodedAuth');
         return;
       }
 
@@ -82,21 +86,18 @@ Future<void> initServer() async {
       try {
         person = await Person.getById(personId);
       } catch (e) {
-        await callback(HttpStatus.internalServerError, {"error": "unauthorized", "message": "Kein Zugriff auf diese Resource"});
-        print('Error getting person by ID: $e');
+        await callback(HttpStatus.unauthorized, {"error": "unauthorized", "message": "Kein Zugriff auf diese Resource"});
         return;
       }
 
       if (person.registrationKey != key) {
         await callback(HttpStatus.unauthorized, {"error": "unauthorized", "message": "Kein Zugriff auf diese Resource"});
-        print('Registration key does not match');
         return;
       }
 
-      AuthMethod authMethod = AuthMethod.fromName(keyword);
-      if (authMethod == AuthMethod.none) {
+      var method = AuthMethod.authMethods[keyword];
+      if (method == null) {
         await callback(HttpStatus.notFound, {"error": "not_found", "message": "Die angeforderte Resource wurde nicht gefunden"});
-        print('No auth method found for keyword: $keyword');
         return;
       }
 
@@ -120,7 +121,17 @@ Future<void> initServer() async {
         await Person.update(person);
       }
 
-      await authMethod.handle(person, data!, callback);
+      try {
+        await method(person, data!, callback);
+      } on RequestException catch (e) {
+        callback(e.statusCode, {"error": e.statusCode, "message": e.message});
+      } catch (e, s) {
+        request.response.statusCode = HttpStatus.internalServerError;
+        outln("Internal server error: $e\n$s", Color.error);
+        request.response.add(utf8.encode(json.encode({"error": "internal_server_error", "message": "Ein interner Serverfehler ist aufgetreten"})));
+        await request.response.flush();
+        await request.response.close();
+      }
     } catch (e, s) {
       request.response.statusCode = HttpStatus.internalServerError;
       outln("Internal server error: $e\n$s", Color.error);
@@ -129,4 +140,171 @@ Future<void> initServer() async {
       await request.response.close();
     }
   });
+}
+
+List<RealtimeConnection> realtimeConnections = [];
+
+class RealtimeConnection {
+  int personId;
+  WebSocket socket;
+  late Stream stream;
+  late DateTime created;
+  late DateTime lastActive;
+  bool controller = false;
+
+  RealtimeConnection(this.personId, this.socket) {
+    created = DateTime.now();
+    lastActive = DateTime.now();
+    stream = socket.asBroadcastStream();
+
+    realtimeConnections.add(this);
+    outln('Client connected to Realtime-Server $personId', Color.info);
+  }
+
+  void close({bool timeout = false, bool replaced = false, bool kicked = false}) {
+    socket.close();
+
+    if (timeout) {
+      outln('Client disconnected from Realtime-Server (timeout): $personId after ${DateTime.now().difference(created).inSeconds}s', Color.info);
+    } else if (replaced) {
+      outln('Client disconnected from Realtime-Server (replaced): $personId after ${DateTime.now().difference(created).inSeconds}s', Color.info);
+    } else if (kicked) {
+      outln('Client disconnected from Realtime-Server (kicked): $personId after ${DateTime.now().difference(created).inSeconds}s', Color.info);
+    } else {
+      outln('Client disconnected from Realtime-Server: $personId after ${DateTime.now().difference(created).inSeconds}s', Color.warn);
+    }
+  }
+
+  void send(String event, Map<String, dynamic> data) {
+    try {
+      socket.addUtf8Text(utf8.encode((jsonEncode({'event': event, 'data': data}))));
+    } catch (e, s) {
+      outln('Error in Realtime-Server: $e', Color.error);
+      outln(s.toString(), Color.error);
+      close();
+    }
+  }
+
+  void listen() {
+    stream.listen((event) async {
+      try {
+        String eventString;
+        if (event is String) {
+          eventString = event;
+        } else if (event is List<int>) {
+          eventString = utf8.decode(event);
+        } else {
+          return;
+        }
+
+        lastActive = DateTime.now();
+
+        Map<String, dynamic> json = jsonDecode(eventString);
+        String type = json['t'];
+
+        // TODO
+      } catch (e, s) {
+        outln('Data: $event', Color.error);
+        outln(e.toString(), Color.warn);
+        outln(s.toString(), Color.warn);
+      }
+    });
+  }
+
+  bool check() {
+    try {
+      if (DateTime.now().difference(lastActive).inSeconds > 20) {
+        close(timeout: true);
+        return false;
+      } else {
+        try {
+          socket.addUtf8Text(utf8.encode('{}'));
+        } catch (e) {
+          close();
+          return false;
+        }
+      }
+
+      return true;
+    } catch (e) {
+      close();
+      outln('Error in Realtime-Server: $e', Color.error);
+      return false;
+    }
+  }
+}
+
+Future<Never> startRealtimeWatchThread() async {
+  while (true) {
+    try {
+      await Future.delayed(const Duration(seconds: 3));
+      List<RealtimeConnection> removeList = [];
+      for (int i = 0; i < realtimeConnections.length; i++) {
+        if (!realtimeConnections[i].check()) {
+          removeList.add(realtimeConnections[i]);
+        }
+      }
+      for (int i = 0; i < removeList.length; i++) {
+        realtimeConnections.remove(removeList[i]);
+      }
+    } catch (e) {
+      outln('Error in Realtime-Server: $e', Color.error);
+    }
+  }
+}
+
+Future<void> handleRealtime(HttpRequest request) async {
+  try {
+    String? rawAuth = request.headers.value('authorization');
+    if (rawAuth == null) {
+      request.response.statusCode = HttpStatus.unauthorized;
+      await request.response.flush();
+      await request.response.close();
+      return;
+    }
+
+    String decodedAuth = utf8.decode(gzip.decode(base64.decode(rawAuth)));
+    if (!decodedAuth.contains(':')) {
+      request.response.statusCode = HttpStatus.unauthorized;
+      await request.response.flush();
+      await request.response.close();
+      return;
+    }
+
+    List<String> authParts = decodedAuth.split(':');
+    int personId = int.parse(authParts[0]);
+    String key = authParts[1];
+
+    Person? person;
+    try {
+      person = await Person.getById(personId);
+    } catch (e) {
+      request.response.statusCode = HttpStatus.unauthorized;
+      await request.response.flush();
+      await request.response.close();
+      return;
+    }
+
+    if (person.registrationKey != key) {
+      request.response.statusCode = HttpStatus.unauthorized;
+      await request.response.flush();
+      await request.response.close();
+      return;
+    }
+
+    if (WebSocketTransformer.isUpgradeRequest(request)) {
+      request.response.bufferOutput = false;
+      WebSocket webSocket = await WebSocketTransformer.upgrade(request);
+      RealtimeConnection connection = RealtimeConnection(person.id, webSocket);
+      connection.listen();
+    } else {
+      request.response.statusCode = HttpStatus.badRequest;
+      await request.response.flush();
+      await request.response.close();
+    }
+  } catch (e) {
+    request.response.statusCode = HttpStatus.badRequest;
+    await request.response.flush();
+    await request.response.close();
+  }
 }

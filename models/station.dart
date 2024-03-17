@@ -1,4 +1,8 @@
+import 'dart:io';
+
+import '../server/init.dart';
 import '../utils/database.dart';
+import '../utils/generic.dart';
 
 class Station {
   final int id;
@@ -123,7 +127,7 @@ class Station {
   static Future<Station> getById(int id) async {
     var result = await Database.connection.query("SELECT * FROM stations WHERE id = @id;", substitutionValues: {"id": id});
     if (result.isEmpty) {
-      throw Exception("Station not found");
+      throw RequestException(HttpStatus.notFound, "Die Station konnte nicht gefunden werden.");
     }
     return Station.fromDatabase(result[0].toColumnMap());
   }
@@ -139,6 +143,7 @@ class Station {
       "INSERT INTO stations (area, prefix, stationnumber, address, coordinates, units, persons, adminpersons, updated) VALUES (@area, @prefix, @stationnumber, @address, @coordinates, @units, @persons, @adminpersons, @updated);",
       substitutionValues: station.toDatabase(),
     );
+    Station.broadcastChange(station);
   }
 
   static Future<void> update(Station station) async {
@@ -147,14 +152,34 @@ class Station {
       "UPDATE stations SET area = @area, prefix = @prefix, stationnumber = @stationnumber, address = @address, coordinates = @coordinates, units = @units, persons = @persons, adminpersons = @adminpersons, updated = @updated WHERE id = @id;",
       substitutionValues: station.toDatabase(),
     );
+    Station.broadcastChange(station);
   }
 
   static Future<void> deleteById(int id) async {
     await Database.connection.query("DELETE FROM stations WHERE id = @id;", substitutionValues: {"id": id});
+    Station.broadcastDelete(id);
   }
 
   static Future<List<Station>> getByIds(Iterable<int> involvedStationIds) async {
     var result = await Database.connection.query("SELECT * FROM stations WHERE id = ANY(@ids);", substitutionValues: {"ids": involvedStationIds});
     return result.map((e) => Station.fromDatabase(e.toColumnMap())).toList();
+  }
+
+  static Future<List<Station>> getByPersonId(int personId) async {
+    var result = await Database.connection.query("SELECT * FROM stations WHERE $personId = ANY(persons);");
+    return result.map((e) => Station.fromDatabase(e.toColumnMap())).toList();
+  }
+
+  static Future<void> broadcastChange(Station station) async {
+    var json = station.toJson();
+    for (var connection in realtimeConnections) {
+      connection.send("station", json);
+    }
+  }
+
+  static Future<void> broadcastDelete(int id) async {
+    for (var connection in realtimeConnections) {
+      connection.send("station_delete", {"id": id});
+    }
   }
 }
