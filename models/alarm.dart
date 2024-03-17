@@ -9,7 +9,7 @@ import 'station.dart';
 import 'unit.dart';
 
 class Alarm {
-  final int id;
+  int id;
   String type;
   String word;
   DateTime date;
@@ -164,10 +164,11 @@ class Alarm {
 
   static Future<void> insert(Alarm alarm) async {
     alarm.updated = DateTime.now();
-    await Database.connection.query(
-      "INSERT INTO alarms (type, word, date, number, address, notes, units, responses, updated) VALUES (@type, @word, @date, @number, @address, @notes, @units, @responses, @updated);",
+    var result = await Database.connection.query(
+      "INSERT INTO alarms (type, word, date, number, address, notes, units, responses, updated) VALUES (@type, @word, @date, @number, @address, @notes, @units, @responses, @updated) RETURNING id;",
       substitutionValues: alarm.toDatabase(),
     );
+    alarm.id = result[0][0] as int;
     Alarm.broadcastChange(alarm);
   }
 

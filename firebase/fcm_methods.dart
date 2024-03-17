@@ -35,6 +35,7 @@ abstract class FCMMethods {
       units: (await Unit.getAll()).map((unit) => unit.id).toList(),
       updated: now,
     );
+    await Alarm.insert(alarm);
 
     String deflated = alarm.deflateToString();
 

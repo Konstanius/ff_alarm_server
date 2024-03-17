@@ -2,6 +2,7 @@ import 'dart:io';
 
 import '../models/alarm.dart';
 import '../models/person.dart';
+import '../models/unit.dart';
 
 abstract class AlarmInterface {
   static Future<void> getAll(Person person, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
@@ -20,7 +21,7 @@ abstract class AlarmInterface {
 
     for (Alarm alarm in alarms) {
       canSee.add(alarm.id);
-      if (updates.containsKey(alarm.id) && updates[alarm.id]!.isBefore(alarm.updated)) continue;
+      if (updates.containsKey(alarm.id) && updates[alarm.id]!.millisecondsSinceEpoch == alarm.updated.millisecondsSinceEpoch) continue;
       response.add(alarm.toJson());
     }
 
@@ -47,6 +48,22 @@ abstract class AlarmInterface {
     if (!await alarm.canSee(person)) {
       await callback(HttpStatus.forbidden, {"message": "Du bist nicht berechtigt, auf diese Alarmierung zuzugreifen."});
       return;
+    }
+
+    int? station = response.stationId;
+    if (station != null) {
+      var units = await Unit.getByStationId(station);
+      bool allowed = false;
+      for (var unit in units) {
+        if (!alarm.units.contains(unit.id)) continue;
+        if (!person.allowedUnits.contains(unit.id)) continue;
+        allowed = true;
+      }
+
+      if (!allowed) {
+        await callback(HttpStatus.forbidden, {"message": "Du bist nicht berechtigt, auf diese Alarmierung zuzugreifen."});
+        return;
+      }
     }
 
     alarm.responses[person.id] = response;

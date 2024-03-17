@@ -19,7 +19,7 @@ abstract class PersonInterface {
 
     for (Person person in persons) {
       canSee.add(person.id);
-      if (updates.containsKey(person.id) && updates[person.id]!.isBefore(person.updated)) continue;
+      if (updates.containsKey(person.id) && updates[person.id]!.millisecondsSinceEpoch == person.updated.millisecondsSinceEpoch) continue;
       response.add(person.toJson());
     }
 

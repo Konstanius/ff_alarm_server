@@ -20,7 +20,7 @@ abstract class UnitInterface {
 
     for (Unit unit in units) {
       canSee.add(unit.id);
-      if (updates.containsKey(unit.id) && updates[unit.id]!.isBefore(unit.updated)) continue;
+      if (updates.containsKey(unit.id) && updates[unit.id]!.millisecondsSinceEpoch == unit.updated.millisecondsSinceEpoch) continue;
       response.add(unit.toJson());
     }
 

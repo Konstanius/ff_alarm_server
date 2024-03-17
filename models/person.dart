@@ -8,7 +8,7 @@ import 'station.dart';
 import 'unit.dart';
 
 class Person {
-  final int id;
+  int id;
   String firstName;
   String lastName;
   List<int> allowedUnits;
@@ -117,10 +117,11 @@ class Person {
 
   static Future<void> insert(Person person) async {
     person.updated = DateTime.now();
-    await Database.connection.query(
-      "INSERT INTO persons (id, firstname, lastname, allowedunits, qualifications, fcmtokens, registrationkey, response, updated) @id, @firstname, @lastname, @allowedunits, @qualifications, @fcmtokens, @registrationkey, @response, @updated;",
+    var result = await Database.connection.query(
+      "INSERT INTO persons (firstname, lastname, allowedunits, qualifications, fcmtokens, registrationkey, response, updated) @firstname, @lastname, @allowedunits, @qualifications, @fcmtokens, @registrationkey, @response, @updated RETURNING id;",
       substitutionValues: person.toDatabase(),
     );
+    person.id = result[0][0];
     Person.broadcastChange(person);
   }
 

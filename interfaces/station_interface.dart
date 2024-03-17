@@ -20,7 +20,7 @@ abstract class StationInterface {
 
     for (Station station in stations) {
       canSee.add(station.id);
-      if (updates.containsKey(station.id) && updates[station.id]!.isBefore(station.updated)) continue;
+      if (updates.containsKey(station.id) && updates[station.id]!.millisecondsSinceEpoch == station.updated.millisecondsSinceEpoch) continue;
       response.add(station.toJson());
     }
 

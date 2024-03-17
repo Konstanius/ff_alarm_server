@@ -5,7 +5,7 @@ import '../utils/database.dart';
 import '../utils/generic.dart';
 
 class Unit {
-  final int id;
+  int id;
   int stationId;
   int unitType;
   int unitIdentifier;
@@ -47,7 +47,7 @@ class Unit {
       unitIdentifier: json[jsonShorts["unitIdentifier"]],
       unitDescription: json[jsonShorts["unitDescription"]],
       status: json[jsonShorts["status"]],
-      positions: json[jsonShorts["positions"]].map((e) => UnitPosition.values[e]).toList(),
+      positions: List<UnitPosition>.from(json[jsonShorts["positions"]].map((e) => UnitPosition.values[e])),
       capacity: json[jsonShorts["capacity"]],
       updated: DateTime.fromMillisecondsSinceEpoch(json[jsonShorts["updated"]]),
     );
@@ -75,7 +75,7 @@ class Unit {
       unitIdentifier: data["unitidentifier"],
       unitDescription: data["unitdescription"],
       status: data["status"],
-      positions: data["positions"].map((e) => UnitPosition.values[e]).toList(),
+      positions: List<UnitPosition>.from(data["positions"].map((e) => UnitPosition.values[e])),
       capacity: data["capacity"],
       updated: DateTime.fromMillisecondsSinceEpoch(data["updated"]),
     );
@@ -137,10 +137,11 @@ class Unit {
 
   static Future<void> insert(Unit unit) async {
     unit.updated = DateTime.now();
-    await Database.connection.query(
-      "INSERT INTO units (id, stationid, unittype, unitidentifier, unitdescription, status, positions, capacity, updated) VALUES (@id, @stationid, @unittype, @unitidentifier, @unitdescription, @status, @positions, @capacity, @updated);",
+    var result = await Database.connection.query(
+      "INSERT INTO units (id, stationid, unittype, unitidentifier, unitdescription, status, positions, capacity, updated) VALUES (@id, @stationid, @unittype, @unitidentifier, @unitdescription, @status, @positions, @capacity, @updated) RETURNING id;",
       substitutionValues: unit.toDatabase(),
     );
+    unit.id = result[0][0];
     Unit.broadcastChange(unit);
   }
 
@@ -159,7 +160,11 @@ class Unit {
   }
 
   static Future<List<Unit>> getByIds(Iterable<int> units) async {
-    var result = await Database.connection.query("SELECT * FROM units WHERE id = ANY(@units);", substitutionValues: {"units": units});
+    if (units.isEmpty) return [];
+    var result = await Database.connection.query(
+      "SELECT * FROM units WHERE id = ANY(@units);",
+      substitutionValues: {"units": units.toList()},
+    );
     return result.map((e) => Unit.fromDatabase(e.toColumnMap())).toList();
   }
 

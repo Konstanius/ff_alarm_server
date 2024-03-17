@@ -5,7 +5,8 @@ import '../utils/database.dart';
 import '../utils/generic.dart';
 
 class Station {
-  final int id;
+  int id;
+  String name;
   String area;
   String prefix;
   int stationNumber;
@@ -18,6 +19,7 @@ class Station {
 
   Station({
     required this.id,
+    required this.name,
     required this.area,
     required this.prefix,
     required this.stationNumber,
@@ -31,6 +33,7 @@ class Station {
 
   static const Map<String, String> jsonShorts = {
     "id": "i",
+    "name": "n",
     "area": "a",
     "prefix": "p",
     "stationNumber": "s",
@@ -45,6 +48,7 @@ class Station {
   factory Station.fromJson(Map<String, dynamic> json) {
     return Station(
       id: json[jsonShorts["id"]],
+      name: json[jsonShorts["name"]],
       area: json[jsonShorts["area"]],
       prefix: json[jsonShorts["prefix"]],
       stationNumber: json[jsonShorts["stationNumber"]],
@@ -60,6 +64,7 @@ class Station {
   Map<String, dynamic> toJson() {
     return {
       jsonShorts["id"]!: id,
+      jsonShorts["name"]!: name,
       jsonShorts["area"]!: area,
       jsonShorts["prefix"]!: prefix,
       jsonShorts["stationNumber"]!: stationNumber,
@@ -75,9 +80,10 @@ class Station {
   factory Station.fromDatabase(Map<String, dynamic> data) {
     return Station(
       id: data["id"],
+      name: data["name"],
       area: data["area"],
       prefix: data["prefix"],
-      stationNumber: data["stationmumber"],
+      stationNumber: data["stationnumber"],
       address: data["address"],
       coordinates: data["coordinates"],
       units: List<int>.from(data["units"]),
@@ -90,6 +96,7 @@ class Station {
   Map<String, dynamic> toDatabase() {
     return {
       "area": area,
+      "name": name,
       "prefix": prefix,
       "stationnumber": stationNumber,
       "address": address,
@@ -111,6 +118,7 @@ class Station {
     if (result[0][0] == false) {
       await Database.connection.execute("CREATE TABLE stations ("
           "id SERIAL PRIMARY KEY,"
+          "name TEXT NOT NULL,"
           "area TEXT NOT NULL,"
           "prefix TEXT NOT NULL,"
           "stationnumber INT NOT NULL,"
@@ -139,17 +147,18 @@ class Station {
 
   static Future<void> insert(Station station) async {
     station.updated = DateTime.now();
-    await Database.connection.query(
-      "INSERT INTO stations (area, prefix, stationnumber, address, coordinates, units, persons, adminpersons, updated) VALUES (@area, @prefix, @stationnumber, @address, @coordinates, @units, @persons, @adminpersons, @updated);",
+    var result = await Database.connection.query(
+      "INSERT INTO stations (name, area, prefix, stationnumber, address, coordinates, units, persons, adminpersons, updated) VALUES (@name, @area, @prefix, @stationnumber, @address, @coordinates, @units, @persons, @adminpersons, @updated) RETURNING id;",
       substitutionValues: station.toDatabase(),
     );
+    station.id = result[0][0];
     Station.broadcastChange(station);
   }
 
   static Future<void> update(Station station) async {
     station.updated = DateTime.now();
     await Database.connection.query(
-      "UPDATE stations SET area = @area, prefix = @prefix, stationnumber = @stationnumber, address = @address, coordinates = @coordinates, units = @units, persons = @persons, adminpersons = @adminpersons, updated = @updated WHERE id = @id;",
+      "UPDATE stations SET name = @name, area = @area, prefix = @prefix, stationnumber = @stationnumber, address = @address, coordinates = @coordinates, units = @units, persons = @persons, adminpersons = @adminpersons, updated = @updated WHERE id = @id;",
       substitutionValues: station.toDatabase(),
     );
     Station.broadcastChange(station);
@@ -161,7 +170,11 @@ class Station {
   }
 
   static Future<List<Station>> getByIds(Iterable<int> involvedStationIds) async {
-    var result = await Database.connection.query("SELECT * FROM stations WHERE id = ANY(@ids);", substitutionValues: {"ids": involvedStationIds});
+    if (involvedStationIds.isEmpty) return [];
+    var result = await Database.connection.query(
+      "SELECT * FROM stations WHERE id = ANY(@ids);",
+      substitutionValues: {"ids": involvedStationIds.toList()},
+    );
     return result.map((e) => Station.fromDatabase(e.toColumnMap())).toList();
   }
 

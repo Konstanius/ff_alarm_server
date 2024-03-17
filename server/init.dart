@@ -58,23 +58,23 @@ Future<void> initServer() async {
           String boundRequest = await utf8.decoder.bind(request).join();
           data = json.decode(boundRequest);
         } catch (e) {
-          await callback(HttpStatus.badRequest, {"error": "bad_request", "message": "Die Anfrage konnte nicht verarbeitet werden"});
+          await callback(HttpStatus.badRequest, {"message": "Die Anfrage konnte nicht verarbeitet werden"});
           return;
         }
 
-        await callback(HttpStatus.unauthorized, {"error": "unauthorized", "message": "Kein Zugriff auf diese Resource"});
+        await callback(HttpStatus.unauthorized, {"message": "Kein Zugriff auf diese Resource"});
         return;
       }
 
       String? rawAuth = request.headers.value('authorization');
       if (rawAuth == null) {
-        await callback(HttpStatus.unauthorized, {"error": "unauthorized", "message": "Kein Zugriff auf diese Resource"});
+        await callback(HttpStatus.unauthorized, {"message": "Kein Zugriff auf diese Resource"});
         return;
       }
 
       String decodedAuth = utf8.decode(gzip.decode(base64.decode(rawAuth)));
       if (!decodedAuth.contains(':')) {
-        await callback(HttpStatus.unauthorized, {"error": "unauthorized", "message": "Kein Zugriff auf diese Resource"});
+        await callback(HttpStatus.unauthorized, {"message": "Kein Zugriff auf diese Resource"});
         return;
       }
 
@@ -86,18 +86,18 @@ Future<void> initServer() async {
       try {
         person = await Person.getById(personId);
       } catch (e) {
-        await callback(HttpStatus.unauthorized, {"error": "unauthorized", "message": "Kein Zugriff auf diese Resource"});
+        await callback(HttpStatus.unauthorized, {"message": "Kein Zugriff auf diese Resource"});
         return;
       }
 
       if (person.registrationKey != key) {
-        await callback(HttpStatus.unauthorized, {"error": "unauthorized", "message": "Kein Zugriff auf diese Resource"});
+        await callback(HttpStatus.unauthorized, {"message": "Kein Zugriff auf diese Resource"});
         return;
       }
 
       var method = AuthMethod.authMethods[keyword];
       if (method == null) {
-        await callback(HttpStatus.notFound, {"error": "not_found", "message": "Die angeforderte Resource wurde nicht gefunden"});
+        await callback(HttpStatus.notFound, {"message": "Die angeforderte Resource wurde nicht gefunden"});
         return;
       }
 
@@ -106,7 +106,7 @@ Future<void> initServer() async {
         String boundRequest = await utf8.decoder.bind(request).join();
         data = json.decode(boundRequest);
       } catch (e) {
-        await callback(HttpStatus.badRequest, {"error": "bad_request", "message": "Die Anfrage konnte nicht verarbeitet werden"});
+        await callback(HttpStatus.badRequest, {"message": "Die Anfrage konnte nicht verarbeitet werden"});
         return;
       }
 
@@ -124,18 +124,18 @@ Future<void> initServer() async {
       try {
         await method(person, data!, callback);
       } on RequestException catch (e) {
-        callback(e.statusCode, {"error": e.statusCode, "message": e.message});
+        callback(e.statusCode, {"message": e.message});
       } catch (e, s) {
         request.response.statusCode = HttpStatus.internalServerError;
         outln("Internal server error: $e\n$s", Color.error);
-        request.response.add(utf8.encode(json.encode({"error": "internal_server_error", "message": "Ein interner Serverfehler ist aufgetreten"})));
+        request.response.add(utf8.encode(json.encode({"message": "Ein interner Serverfehler ist aufgetreten"})));
         await request.response.flush();
         await request.response.close();
       }
     } catch (e, s) {
       request.response.statusCode = HttpStatus.internalServerError;
       outln("Internal server error: $e\n$s", Color.error);
-      request.response.add(utf8.encode(json.encode({"error": "internal_server_error", "message": "Ein interner Serverfehler ist aufgetreten"})));
+      request.response.add(utf8.encode(json.encode({"message": "Ein interner Serverfehler ist aufgetreten"})));
       await request.response.flush();
       await request.response.close();
     }
