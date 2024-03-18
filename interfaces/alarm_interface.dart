@@ -41,7 +41,11 @@ abstract class AlarmInterface {
   }
 
   static Future<void> setResponse(Person person, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
-    AlarmResponse response = AlarmResponse.fromJson(data);
+    AlarmResponse? response = AlarmResponse.fromJson(data);
+    if (response == null) {
+      await callback(HttpStatus.badRequest, {"message": "Ungültige Daten"});
+      return;
+    }
     int alarmId = data["alarmId"];
 
     Alarm alarm = await Alarm.getById(alarmId);
@@ -50,19 +54,21 @@ abstract class AlarmInterface {
       return;
     }
 
-    int? station = response.stationId;
-    if (station != null) {
-      var units = await Unit.getByStationId(station);
-      bool allowed = false;
-      for (var unit in units) {
-        if (!alarm.units.contains(unit.id)) continue;
-        if (!person.allowedUnits.contains(unit.id)) continue;
-        allowed = true;
-      }
+    if (alarm.units.isNotEmpty) {
+      int? station = response.stationId;
+      if (station != null) {
+        var units = await Unit.getByStationId(station);
+        bool allowed = false;
+        for (var unit in units) {
+          if (!alarm.units.contains(unit.id)) continue;
+          if (!person.allowedUnits.contains(unit.id)) continue;
+          allowed = true;
+        }
 
-      if (!allowed) {
-        await callback(HttpStatus.forbidden, {"message": "Du bist nicht berechtigt, auf diese Alarmierung zuzugreifen."});
-        return;
+        if (!allowed) {
+          await callback(HttpStatus.forbidden, {"message": "Du bist nicht berechtigt, auf diese Alarmierung zuzugreifen."});
+          return;
+        }
       }
     }
 

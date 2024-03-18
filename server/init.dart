@@ -66,15 +66,11 @@ Future<void> initServer() async {
         return;
       }
 
-      String? rawAuth = request.headers.value('authorization');
-      if (rawAuth == null) {
-        await callback(HttpStatus.unauthorized, {"message": "Kein Zugriff auf diese Resource"});
-        return;
-      }
+      String rawAuth = request.headers.value('authorization')!;
 
       String decodedAuth = utf8.decode(gzip.decode(base64.decode(rawAuth)));
       if (!decodedAuth.contains(':')) {
-        await callback(HttpStatus.unauthorized, {"message": "Kein Zugriff auf diese Resource"});
+        await callback(HttpStatus.badRequest, {"message": "Die Anfrage konnte nicht verarbeitet werden"});
         return;
       }
 
@@ -86,6 +82,7 @@ Future<void> initServer() async {
       try {
         person = await Person.getById(personId);
       } catch (e) {
+        outln("Error: $e", Color.error);
         await callback(HttpStatus.unauthorized, {"message": "Kein Zugriff auf diese Resource"});
         return;
       }
@@ -265,7 +262,7 @@ Future<void> handleRealtime(HttpRequest request) async {
 
     String decodedAuth = utf8.decode(gzip.decode(base64.decode(rawAuth)));
     if (!decodedAuth.contains(':')) {
-      request.response.statusCode = HttpStatus.unauthorized;
+      request.response.statusCode = HttpStatus.badRequest;
       await request.response.flush();
       await request.response.close();
       return;

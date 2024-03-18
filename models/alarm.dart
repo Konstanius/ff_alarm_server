@@ -59,7 +59,8 @@ class Alarm {
       responses: () {
         Map<int, AlarmResponse> responses = {};
         json[jsonShorts["responses"]].forEach((key, value) {
-          responses[int.parse(key)] = AlarmResponse.fromJson(value);
+          var alarmResponse = AlarmResponse.fromJson(value);
+          if (alarmResponse != null) responses[int.parse(key)] = alarmResponse;
         });
         return responses;
       }(),
@@ -103,7 +104,8 @@ class Alarm {
       responses: () {
         Map<int, AlarmResponse> responses = {};
         data["responses"].forEach((key, value) {
-          responses[int.parse(key)] = AlarmResponse.fromJson(value);
+          var alarmResponse = AlarmResponse.fromJson(value);
+          if (alarmResponse != null) responses[int.parse(key)] = alarmResponse;
         });
         return responses;
       }(),
@@ -205,6 +207,7 @@ class Alarm {
   }
 
   Future<bool> canSee(Person person) async {
+    if (units.isEmpty) return true;
     if (responses.containsKey(person.id)) return true;
     if (date.isBefore(DateTime.now().subtract(const Duration(days: 90)))) return false;
 
@@ -248,16 +251,17 @@ class Alarm {
 class AlarmResponse {
   String? note;
   DateTime? time;
-  int? duration;
+  AlarmResponseType type;
   int? stationId;
 
-  AlarmResponse({this.note, this.time, this.duration, this.stationId});
+  AlarmResponse({this.note, this.time, required this.type, this.stationId});
 
-  factory AlarmResponse.fromJson(Map<String, dynamic> json) {
+  static AlarmResponse? fromJson(Map<String, dynamic>? json) {
+    if (json == null || !json.containsKey("d")) return null;
     return AlarmResponse(
       note: json['n'],
       time: json['t'] != null ? DateTime.fromMillisecondsSinceEpoch(json['t']) : null,
-      duration: json['d'],
+      type: AlarmResponseType.values[json['d']],
       stationId: json['s'],
     );
   }
@@ -266,8 +270,21 @@ class AlarmResponse {
     return {
       'n': note,
       't': time?.millisecondsSinceEpoch,
-      'd': duration,
+      'd': type.index,
       's': stationId,
     };
   }
+}
+
+enum AlarmResponseType {
+  onStation(0),
+  under5(5),
+  under10(10),
+  under15(15),
+  onCall(-1),
+  notReady(-2);
+
+  final int timeAmount;
+
+  const AlarmResponseType(this.timeAmount);
 }

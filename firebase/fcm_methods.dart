@@ -24,6 +24,8 @@ abstract class FCMMethods {
 
     DateTime now = DateTime.now();
 
+    await Future.delayed(const Duration(seconds: 5));
+
     Alarm alarm = Alarm(
       id: 0,
       type: "Test",
@@ -32,14 +34,12 @@ abstract class FCMMethods {
       number: (now.year - 2000) * 10000000 + now.month * 100000,
       address: "Am Anger 28, 07743 Jena",
       notes: ["Diese Alarmierung ist ein Test.", "Es besteht kein Handlungsbedarf."],
-      units: (await Unit.getAll()).map((unit) => unit.id).toList(),
+      units: [],
       updated: now,
     );
     await Alarm.insert(alarm);
 
     String deflated = alarm.deflateToString();
-
-    await Future.delayed(const Duration(seconds: 5));
 
     await invokeSDK(
       false,
