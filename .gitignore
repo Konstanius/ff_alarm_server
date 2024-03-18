@@ -3,3 +3,4 @@
 .dart_tool/
 resources/config.json
 resources/firebase/firebase-admin-token.json
+resources/main.exe
