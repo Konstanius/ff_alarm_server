@@ -2,6 +2,7 @@ import 'dart:io';
 
 import '../models/alarm.dart';
 import '../models/person.dart';
+import '../models/station.dart';
 import '../models/unit.dart';
 
 abstract class AlarmInterface {
@@ -15,7 +16,7 @@ abstract class AlarmInterface {
       updates[int.parse(splitDate[0])] = DateTime.fromMillisecondsSinceEpoch(int.parse(splitDate[1]));
     }
 
-    List<Alarm> alarms = await Alarm.getAll();
+    List<Alarm> alarms = await Alarm.getAll(oldest: DateTime.now().subtract(Duration(days: 90)));
     List<Map<String, dynamic>> response = [];
     Set<int> canSee = {};
 
@@ -76,5 +77,96 @@ abstract class AlarmInterface {
     await Alarm.update(alarm);
 
     await callback(HttpStatus.ok, alarm.toJson());
+  }
+
+  static Future<void> getDetails(Person person, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
+    String hasAlarm = data["alarm"];
+    var split = hasAlarm.split(":");
+    int alarmId = int.parse(split[0]);
+    Alarm alarm = await Alarm.getById(alarmId);
+    if (!await alarm.canSee(person)) {
+      await callback(HttpStatus.forbidden, {"message": "Du bist nicht berechtigt, auf diese Alarmierung zuzugreifen."});
+      return;
+    }
+
+    List<String> hasUnits = data["units"].split(",");
+    List<String> hasStations = data["stations"].split(",");
+    List<String> hasPersons = data["persons"].split(",");
+
+    // what has to be sent:
+    // alarm itself
+    // all units
+    // stations of all units
+    // all persons of response
+    Map<String, dynamic> response = {};
+
+    int version = int.parse(split[1]);
+    if (alarm.updated.millisecondsSinceEpoch != version) {
+      response["alarm"] = alarm.toJson();
+    }
+
+    var units = await alarm.getUnits();
+    for (String unit in hasUnits) {
+      try {
+        var split = unit.split(":");
+        int id = int.parse(split[0]);
+        int version = int.parse(split[1]);
+
+        for (var u in units) {
+          if (u.id == id && u.updated.millisecondsSinceEpoch == version) {
+            units.remove(u);
+            break;
+          }
+        }
+      } catch (_) {}
+    }
+    if (units.isNotEmpty) {
+      response["units"] = units.map((e) => e.toJson()).toList();
+    }
+
+    var stationIds = <int>{};
+    for (var unit in units) {
+      stationIds.add(unit.stationId);
+    }
+    var stations = await Station.getByIds(stationIds);
+    for (String station in hasStations) {
+      try {
+        var split = station.split(":");
+        int id = int.parse(split[0]);
+        int version = int.parse(split[1]);
+
+        for (var s in stations) {
+          if (s.id == id && s.updated.millisecondsSinceEpoch == version) {
+            stations.remove(s);
+            break;
+          }
+        }
+      } catch (_) {}
+    }
+    if (stations.isNotEmpty) {
+      response["stations"] = stations.map((e) => e.toJson()).toList();
+    }
+
+    var personIds = alarm.responses.keys.toList();
+    var persons = await Person.getByIds(personIds);
+    for (String person in hasPersons) {
+      try {
+        var split = person.split(":");
+        int id = int.parse(split[0]);
+        int version = int.parse(split[1]);
+
+        for (var p in persons) {
+          if (p.id == id && p.updated.millisecondsSinceEpoch == version) {
+            persons.remove(p);
+            break;
+          }
+        }
+      } catch (_) {}
+    }
+    if (persons.isNotEmpty) {
+      response["persons"] = persons.map((e) => e.toJson()).toList();
+    }
+
+    await callback(HttpStatus.ok, response);
   }
 }

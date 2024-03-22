@@ -12,6 +12,11 @@ abstract class AuthMethod {
     "unitGetAll": UnitInterface.getAll,
     "alarmGetAll": AlarmInterface.getAll,
     "alarmSetResponse": AlarmInterface.setResponse,
+    "alarmGetDetails": AlarmInterface.getDetails,
     "test": sendTestAlarms,
+  };
+
+  static const Map<String, Future<void> Function(Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback)> guestMethods = {
+    "personCheckAuth": PersonInterface.checkAuth,
   };
 }

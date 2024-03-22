@@ -51,7 +51,6 @@ Future<void> initServer() async {
       }
 
       if (request.headers.value('authorization') == null) {
-        // TODO allow guest keywords here
 
         Map<String, dynamic>? data;
         try {
@@ -62,7 +61,23 @@ Future<void> initServer() async {
           return;
         }
 
-        await callback(HttpStatus.unauthorized, {"message": "Kein Zugriff auf diese Resource"});
+        var method = AuthMethod.guestMethods[keyword];
+        if (method == null) {
+          await callback(HttpStatus.notFound, {"message": "Die angeforderte Resource wurde nicht gefunden"});
+          return;
+        }
+
+        try {
+          await method(data!, callback);
+        } on RequestException catch (e) {
+          callback(e.statusCode, {"message": e.message});
+        } catch (e, s) {
+          request.response.statusCode = HttpStatus.internalServerError;
+          outln("Internal server error: $e\n$s", Color.error);
+          request.response.add(utf8.encode(json.encode({"message": "Ein interner Serverfehler ist aufgetreten"})));
+          await request.response.flush();
+          await request.response.close();
+        }
         return;
       }
 
@@ -142,33 +157,33 @@ Future<void> initServer() async {
 List<RealtimeConnection> realtimeConnections = [];
 
 class RealtimeConnection {
-  int personId;
+  Person person;
   WebSocket socket;
   late Stream stream;
   late DateTime created;
   late DateTime lastActive;
   bool controller = false;
 
-  RealtimeConnection(this.personId, this.socket) {
+  RealtimeConnection(this.person, this.socket) {
     created = DateTime.now();
     lastActive = DateTime.now();
     stream = socket.asBroadcastStream();
 
     realtimeConnections.add(this);
-    outln('Client connected to Realtime-Server $personId', Color.info);
+    outln('Client connected to Realtime-Server ${person.id}', Color.info);
   }
 
   void close({bool timeout = false, bool replaced = false, bool kicked = false}) {
     socket.close();
 
     if (timeout) {
-      outln('Client disconnected from Realtime-Server (timeout): $personId after ${DateTime.now().difference(created).inSeconds}s', Color.info);
+      outln('Client disconnected from Realtime-Server (timeout): ${person.id} after ${DateTime.now().difference(created).inSeconds}s', Color.info);
     } else if (replaced) {
-      outln('Client disconnected from Realtime-Server (replaced): $personId after ${DateTime.now().difference(created).inSeconds}s', Color.info);
+      outln('Client disconnected from Realtime-Server (replaced): ${person.id} after ${DateTime.now().difference(created).inSeconds}s', Color.info);
     } else if (kicked) {
-      outln('Client disconnected from Realtime-Server (kicked): $personId after ${DateTime.now().difference(created).inSeconds}s', Color.info);
+      outln('Client disconnected from Realtime-Server (kicked): ${person.id} after ${DateTime.now().difference(created).inSeconds}s', Color.info);
     } else {
-      outln('Client disconnected from Realtime-Server: $personId after ${DateTime.now().difference(created).inSeconds}s', Color.warn);
+      outln('Client disconnected from Realtime-Server: ${person.id} after ${DateTime.now().difference(created).inSeconds}s', Color.warn);
     }
   }
 
@@ -292,7 +307,7 @@ Future<void> handleRealtime(HttpRequest request) async {
     if (WebSocketTransformer.isUpgradeRequest(request)) {
       request.response.bufferOutput = false;
       WebSocket webSocket = await WebSocketTransformer.upgrade(request);
-      RealtimeConnection connection = RealtimeConnection(person.id, webSocket);
+      RealtimeConnection connection = RealtimeConnection(person, webSocket);
       connection.listen();
     } else {
       request.response.statusCode = HttpStatus.badRequest;

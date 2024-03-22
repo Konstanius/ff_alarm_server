@@ -14,7 +14,7 @@ abstract class UnitInterface {
       updates[int.parse(splitDate[0])] = DateTime.fromMillisecondsSinceEpoch(int.parse(splitDate[1]));
     }
 
-    List<Unit> units = await Unit.getAll();
+    List<Unit> units = await Unit.getForPerson(person);
     List<Map<String, dynamic>> response = [];
     Set<int> canSee = {};
 

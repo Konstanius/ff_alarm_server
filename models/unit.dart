@@ -3,6 +3,7 @@ import 'dart:io';
 import '../server/init.dart';
 import '../utils/database.dart';
 import '../utils/generic.dart';
+import 'person.dart';
 
 class Unit {
   int id;
@@ -130,6 +131,11 @@ class Unit {
     return result.map((e) => Unit.fromDatabase(e.toColumnMap())).toList();
   }
 
+  static Future<List<Unit>> getForPerson(Person person) async {
+    var result = await Database.connection.query("SELECT * FROM units WHERE id = ANY(@allowedunits);", substitutionValues: {"allowedunits": person.allowedUnits});
+    return result.map((e) => Unit.fromDatabase(e.toColumnMap())).toList();
+  }
+
   static Future<List<Unit>> getByStationId(int stationId) async {
     var result = await Database.connection.query("SELECT * FROM units WHERE stationid = @stationid;", substitutionValues: {"stationId": stationId});
     return result.map((e) => Unit.fromDatabase(e.toColumnMap())).toList();
@@ -171,6 +177,7 @@ class Unit {
   static Future<void> broadcastChange(Unit unit) async {
     var json = unit.toJson();
     for (var connection in realtimeConnections) {
+      if (!connection.person.allowedUnits.contains(unit.id)) continue;
       connection.send("unit", json);
     }
   }

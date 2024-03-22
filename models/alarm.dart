@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:postgres/src/execution_context.dart';
+
 import '../server/init.dart';
 import '../utils/database.dart';
 import '../utils/generic.dart';
@@ -159,8 +161,13 @@ class Alarm {
     return Alarm.fromDatabase(result[0].toColumnMap());
   }
 
-  static Future<List<Alarm>> getAll() async {
-    var result = await Database.connection.query("SELECT * FROM alarms;");
+  static Future<List<Alarm>> getAll({DateTime? oldest}) async {
+    PostgreSQLResult result;
+    if (oldest != null) {
+      result = await Database.connection.query("SELECT * FROM alarms WHERE date > ${oldest.millisecondsSinceEpoch};");
+    } else {
+      result = await Database.connection.query("SELECT * FROM alarms;");
+    }
     return result.map((e) => Alarm.fromDatabase(e.toColumnMap())).toList();
   }
 
@@ -211,12 +218,8 @@ class Alarm {
     if (responses.containsKey(person.id)) return true;
     if (date.isBefore(DateTime.now().subtract(const Duration(days: 90)))) return false;
 
-    var involvedUnits = await getUnits();
-    var involvedStationIds = involvedUnits.map((e) => e.stationId).toSet();
-
-    var stations = await Station.getByIds(involvedStationIds);
-    for (var station in stations) {
-      if (station.persons.contains(person.id)) return true;
+    for (var unit in units) {
+      if (person.allowedUnits.contains(unit)) return true;
     }
 
     return false;
@@ -235,9 +238,8 @@ class Alarm {
 
     var json = alarm.toJson();
     for (var connection in realtimeConnections) {
-      if (involvedPersonIds.contains(connection.personId)) {
-        connection.send("alarm", json);
-      }
+      if (!involvedPersonIds.contains(connection.person.id)) continue;
+      connection.send("alarm", json);
     }
   }
 

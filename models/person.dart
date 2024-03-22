@@ -110,6 +110,11 @@ class Person {
     return Person.fromDatabase(result[0].toColumnMap());
   }
 
+  static Future<List<Person>> getByIds(List<int> ids) async {
+    var result = await Database.connection.query("SELECT * FROM persons WHERE id = ANY(@ids);", substitutionValues: {"ids": ids});
+    return result.map((e) => Person.fromDatabase(e.toColumnMap())).toList();
+  }
+
   static Future<List<Person>> getAll() async {
     var result = await Database.connection.query("SELECT * FROM persons;");
     return result.map((e) => Person.fromDatabase(e.toColumnMap())).toList();
@@ -167,9 +172,8 @@ class Person {
 
     var json = person.toJson();
     for (var connection in realtimeConnections) {
-      if (involvedPersonIds.contains(connection.personId)) {
-        connection.send("person", json);
-      }
+      if (!involvedPersonIds.contains(connection.person.id)) continue;
+      connection.send("person", json);
     }
   }
 
