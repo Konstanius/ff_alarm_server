@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:intl/intl.dart';
+
 import '../models/person.dart';
 import '../utils/console.dart';
 import '../utils/generic.dart';
@@ -8,6 +10,32 @@ import 'auth_method.dart';
 
 Future<void> initServer() async {
   startRealtimeWatchThread();
+
+  String oldLog = "";
+  if (File('logs/latest.log').existsSync()) {
+    String date = File('logs/latest.log').readAsLinesSync()[0].replaceAll('\n', '');
+    File('logs/latest.log').renameSync('logs/$date.log');
+    oldLog = 'logs/$date.log';
+
+    // compress the old log
+    Process.runSync('gzip', [oldLog]);
+
+    // Delete any logs older than 1 year
+    Directory('logs').listSync().forEach((element) {
+      if (element.path.endsWith('.log') && element.path != 'logs/latest.log') {
+        DateTime date = DateTime.parse(element.path.substring(5, element.path.length - 4));
+        if (date.isBefore(DateTime.now().subtract(Duration(days: 365)))) {
+          element.deleteSync();
+        }
+      }
+    });
+  }
+  logFile = File('logs/latest.log');
+  if (!logFile!.existsSync()) {
+    logFile!.createSync(recursive: true);
+  }
+  DateTime now = DateTime.now();
+  logFile!.writeAsStringSync('${DateFormat("yyyy-MM-dd_HH-mm-ss").format(now)}\n', mode: FileMode.append);
 
   HttpServer server = await HttpServer.bind('0.0.0.0', 3000);
   server.listen((HttpRequest request) async {
@@ -51,7 +79,6 @@ Future<void> initServer() async {
       }
 
       if (request.headers.value('authorization') == null) {
-
         Map<String, dynamic>? data;
         try {
           String boundRequest = await utf8.decoder.bind(request).join();
@@ -84,12 +111,17 @@ Future<void> initServer() async {
       String rawAuth = request.headers.value('authorization')!;
 
       String decodedAuth = utf8.decode(gzip.decode(base64.decode(rawAuth)));
-      if (!decodedAuth.contains(':')) {
+      if (!decodedAuth.contains(' ')) {
         await callback(HttpStatus.badRequest, {"message": "Die Anfrage konnte nicht verarbeitet werden"});
         return;
       }
 
-      List<String> authParts = decodedAuth.split(':');
+      List<String> authParts = decodedAuth.split(' ');
+      if (authParts.first == "Basic") {
+        // TODO implement API authentication from TETRA servers
+        return;
+      }
+
       int personId = int.parse(authParts[0]);
       String key = authParts[1];
 
@@ -170,21 +202,10 @@ class RealtimeConnection {
     stream = socket.asBroadcastStream();
 
     realtimeConnections.add(this);
-    outln('Client connected to Realtime-Server ${person.id}', Color.info);
   }
 
   void close({bool timeout = false, bool replaced = false, bool kicked = false}) {
     socket.close();
-
-    if (timeout) {
-      outln('Client disconnected from Realtime-Server (timeout): ${person.id} after ${DateTime.now().difference(created).inSeconds}s', Color.info);
-    } else if (replaced) {
-      outln('Client disconnected from Realtime-Server (replaced): ${person.id} after ${DateTime.now().difference(created).inSeconds}s', Color.info);
-    } else if (kicked) {
-      outln('Client disconnected from Realtime-Server (kicked): ${person.id} after ${DateTime.now().difference(created).inSeconds}s', Color.info);
-    } else {
-      outln('Client disconnected from Realtime-Server: ${person.id} after ${DateTime.now().difference(created).inSeconds}s', Color.warn);
-    }
   }
 
   void send(String event, Map<String, dynamic> data) {
@@ -276,14 +297,21 @@ Future<void> handleRealtime(HttpRequest request) async {
     }
 
     String decodedAuth = utf8.decode(gzip.decode(base64.decode(rawAuth)));
-    if (!decodedAuth.contains(':')) {
+    if (!decodedAuth.contains(' ')) {
       request.response.statusCode = HttpStatus.badRequest;
       await request.response.flush();
       await request.response.close();
       return;
     }
 
-    List<String> authParts = decodedAuth.split(':');
+    List<String> authParts = decodedAuth.split(' ');
+    if (authParts.first == "Basic") {
+      request.response.statusCode = HttpStatus.notImplemented;
+      await request.response.flush();
+      await request.response.close();
+      return;
+    }
+
     int personId = int.parse(authParts[0]);
     String key = authParts[1];
 

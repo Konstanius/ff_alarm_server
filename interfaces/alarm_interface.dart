@@ -16,7 +16,7 @@ abstract class AlarmInterface {
       updates[int.parse(splitDate[0])] = DateTime.fromMillisecondsSinceEpoch(int.parse(splitDate[1]));
     }
 
-    List<Alarm> alarms = await Alarm.getAll(oldest: DateTime.now().subtract(Duration(days: 90)));
+    List<Alarm> alarms = await Alarm.getAll(oldest: DateTime.now().subtract(const Duration(days: 90)));
     List<Map<String, dynamic>> response = [];
     Set<int> canSee = {};
 
@@ -55,6 +55,30 @@ abstract class AlarmInterface {
       return;
     }
 
+    if (alarm.date.isBefore(DateTime.now().subtract(const Duration(hours: 1)))) {
+      await callback(HttpStatus.forbidden, {"message": "Die Antwortzeit ist abgelaufen."});
+      return;
+    }
+
+    if (response.type == AlarmResponseType.notReady) {
+      response.stationId = null;
+    }
+
+    // if response exists already and type and stattion is same, dont set time
+    if (alarm.responses.containsKey(person.id) && alarm.responses[person.id]!.type == response.type && alarm.responses[person.id]!.stationId == response.stationId) {
+      response.time = alarm.responses[person.id]!.time;
+    } else {
+      response.time = DateTime.now();
+    }
+
+    if (response.note != null) {
+      response.note = response.note!.trim();
+      response.note = response.note!.substring(0, response.note!.length > 200 ? 200 : response.note!.length);
+      if (response.note!.isEmpty) {
+        response.note = null;
+      }
+    }
+
     if (alarm.units.isNotEmpty) {
       int? station = response.stationId;
       if (station != null) {
@@ -84,6 +108,11 @@ abstract class AlarmInterface {
     var split = hasAlarm.split(":");
     int alarmId = int.parse(split[0]);
     Alarm alarm = await Alarm.getById(alarmId);
+    if (alarm.units.isEmpty) {
+      await callback(HttpStatus.ok, {});
+      return;
+    }
+
     if (!await alarm.canSee(person)) {
       await callback(HttpStatus.forbidden, {"message": "Du bist nicht berechtigt, auf diese Alarmierung zuzugreifen."});
       return;
@@ -121,6 +150,13 @@ abstract class AlarmInterface {
       } catch (_) {}
     }
     if (units.isNotEmpty) {
+      if (alarm.date.isBefore(DateTime.now().subtract(const Duration(hours: 1)))) {
+        for (var unit in units) {
+          if (person.allowedUnits.contains(unit.id)) continue;
+          unit.status = -1;
+        }
+      }
+
       response["units"] = units.map((e) => e.toJson()).toList();
     }
 

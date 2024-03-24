@@ -190,6 +190,7 @@ class Unit {
 }
 
 enum UnitPosition {
+  zf,
   ma,
   gf,
   atf,

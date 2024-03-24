@@ -34,7 +34,7 @@ abstract class Database {
 
     await connection.open();
 
-    keepAliveTimer = Timer.periodic(Duration(minutes: 1), (timer) async {
+    keepAliveTimer = Timer.periodic(const Duration(minutes: 1), (timer) async {
       await connection.query("SELECT 1");
     });
 

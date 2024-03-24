@@ -8,7 +8,9 @@ environment:
 dependencies:
   intl: any
   postgres: 2.5.2
-  # path: ^1.8.0
+  qr_terminal: 1.1.1
+  crypto: 3.0.3
+  base32: 2.1.3
 
 dev_dependencies:
   lints: ^3.0.0

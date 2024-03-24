@@ -12,7 +12,7 @@ class Person {
   String firstName;
   String lastName;
   List<int> allowedUnits;
-  String qualifications;
+  List<Qualification> qualifications;
   List<String> fcmTokens;
   String registrationKey;
   AlarmResponse? response;
@@ -46,7 +46,7 @@ class Person {
       jsonShorts["firstName"]!: firstName,
       jsonShorts["lastName"]!: lastName,
       jsonShorts["allowedUnits"]!: allowedUnits,
-      jsonShorts["qualifications"]!: qualifications,
+      jsonShorts["qualifications"]!: qualifications.map((e) => e.toString()).toList(),
       jsonShorts["response"]!: response?.toJson(),
       jsonShorts["updated"]!: updated.millisecondsSinceEpoch,
     };
@@ -58,7 +58,16 @@ class Person {
       firstName: data["firstname"],
       lastName: data["lastname"],
       allowedUnits: data["allowedunits"],
-      qualifications: data["qualifications"],
+      qualifications: () {
+        List<Qualification> qualifications = [];
+        for (var qualification in data["qualifications"].split(",")) {
+          if (qualification.isEmpty) continue;
+          try {
+            qualifications.add(Qualification.fromString(qualification));
+          } catch (_) {}
+        }
+        return qualifications;
+      }(),
       fcmTokens: data["fcmtokens"],
       registrationKey: data["registrationkey"],
       response: AlarmResponse.fromJson(data["response"]),
@@ -72,7 +81,7 @@ class Person {
       "firstname": firstName,
       "lastname": lastName,
       "allowedunits": allowedUnits,
-      "qualifications": qualifications,
+      "qualifications": qualifications.map((e) => e.toString()).join(","),
       "fcmtokens": fcmTokens,
       "registrationkey": registrationKey,
       "response": response?.toJson(),
@@ -181,5 +190,26 @@ class Person {
     for (var connection in realtimeConnections) {
       connection.send("person_delete", {"id": personId});
     }
+  }
+}
+
+class Qualification {
+  final String type;
+  final DateTime? start;
+  final DateTime? end;
+
+  Qualification(this.type, this.start, this.end);
+
+  factory Qualification.fromString(String str) {
+    var parts = str.split(':');
+    String type = parts[0];
+    DateTime? start = parts[1] == "0" ? null : DateTime.fromMillisecondsSinceEpoch(int.parse(parts[1]));
+    DateTime? end = parts[2] == "0" ? null : DateTime.fromMillisecondsSinceEpoch(int.parse(parts[2]));
+    return Qualification(type, start, end);
+  }
+
+  @override
+  String toString() {
+    return "$type:${start?.millisecondsSinceEpoch ?? 0}:${end?.millisecondsSinceEpoch ?? 0}";
   }
 }
