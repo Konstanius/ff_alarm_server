@@ -3,8 +3,16 @@ set -e
 # Purpose of this script is to install dart 3.3.1, docker, and then run ./init/installer.dart
 # This script is intended to be run on a fresh Ubuntu 20.04 LTS installation
 
-# basic requirements: sudo, wget, curl, gpg, docker
-sudo apt-get update && sudo apt-get install -y sudo wget curl gpg docker apt-transport-https
+apt-get update
+
+# check if sudo is installed
+if ! command -v sudo &> /dev/null
+then
+  apt-get install -y sudo
+fi
+
+# basic requirements: wget, curl, gpg, docker
+sudo apt-get install -y wget curl gpg docker apt-transport-https
 
 # Check if dart is not already installed
 if ! command -v dart &> /dev/null
