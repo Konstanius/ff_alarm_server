@@ -11,8 +11,8 @@ then
   apt-get install -y sudo
 fi
 
-# basic requirements: wget, curl, gpg, docker
-sudo apt-get install -y wget curl gpg docker apt-transport-https
+# basic requirements: wget, curl, gpg, docker..io, apt-transport-https
+sudo apt-get install -y wget curl gpg docker.io apt-transport-https
 
 # Check if dart is not already installed
 if ! command -v dart &> /dev/null
