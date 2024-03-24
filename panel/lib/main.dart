@@ -33,6 +33,21 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   @override
+  void initState() {
+    super.initState();
+
+    Uri uri = Uri.base;
+    print(uri.queryParameters['user']);
+    print(uri.queryParameters['pass']);
+
+    if (uri.queryParameters.isEmpty) return;
+
+    uri = uri.replace(queryParameters: {});
+
+    window.history.pushState({}, '', uri.toString());
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -43,7 +58,7 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Text(window.location.href),
+            Text(Uri.base.toString()),
           ],
         ),
       ),
