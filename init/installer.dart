@@ -260,6 +260,13 @@ Future<void> install() async {
 
   outln("Database container created and started.", Color.success);
 
+  // dart pub get
+  result = await Process.run("dart", ["pub", "get"]);
+  if (result.exitCode != 0) {
+    outln("Failed to get the dependencies.", Color.error);
+    return;
+  }
+
   // compile the FF Alarm server
   result = await Process.run("dart", ["compile", "exe", "main.dart", "-o", "resources/main.exe"]);
   if (result.exitCode != 0) {
