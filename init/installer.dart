@@ -12,6 +12,12 @@ void main() async {
 }
 
 Future<void> install() async {
+  // if ./resources doesnt exist or isnt a dir, set working dir to ..
+  if (!Directory("resources").existsSync()) {
+    Directory.current = Directory.current.parent;
+    outln("Changed working directory to ${Directory.current.path}", Color.verbose);
+  }
+
   /// Requires Linux
   if (!Platform.isLinux) {
     outln('The FF Alarm Server can only be installed on Linux.', Color.error);
@@ -108,13 +114,13 @@ Future<void> install() async {
     (input) => input != null && input.isNotEmpty,
   );
 
-  if (!File('../resources/firebase/firebase-admin-token.json').existsSync()) {
+  if (!File('resources/firebase/firebase-admin-token.json').existsSync()) {
     outln('resources/firebase/firebase-admin-token.json is missing.', Color.error);
     outln('If this is your first time setting this up, please contact konstantin.dubnack@gmail.com to request a token.', Color.error);
     return;
   }
 
-  if (!File('../resources/firebase/FCMService.jar').existsSync()) {
+  if (!File('resources/firebase/FCMService.jar').existsSync()) {
     outln('resources/firebase/FCMService.jar is missing. Please check the git clone.', Color.error);
     return;
   }
@@ -147,12 +153,12 @@ Future<void> install() async {
     (input) => input?.toLowerCase() == 'y' || input?.toLowerCase() == 'n',
   );
   if (config['nginx_ssl'] == 'y') {
-    if (!File('../resources/cert.pem').existsSync()) {
+    if (!File('resources/cert.pem').existsSync()) {
       outln('resources/cert.pem is missing. Please generate a certificate and key.', Color.error);
       return;
     }
 
-    if (!File('../resources/key.pem').existsSync()) {
+    if (!File('resources/key.pem').existsSync()) {
       outln('resources/key.pem is missing. Please generate a certificate and key.', Color.error);
       return;
     }
@@ -197,9 +203,6 @@ Future<void> install() async {
   }
 
   outln('Setup successful. Proceeding with installation of the FF Alarm Server...', Color.success);
-
-  // set working dir to ..
-  Directory.current = Directory.current.parent;
 
   // Check if docker network exists, if not, create it
   var result = await Process.run("docker", ["network", "ls", "--format", "{{.Name}}"]);
