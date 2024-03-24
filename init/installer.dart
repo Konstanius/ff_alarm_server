@@ -386,6 +386,7 @@ Future<void> install() async {
     outln("Failed to copy the Nginx configuration file.", Color.error);
     return;
   }
+
   if (config['nginx_ssl'] == 'y') {
     result = await Process.run("docker", ["cp", "resources/cert.pem", "ff_alarm_nginx:/etc/ssl/cert.pem"]);
     if (result.exitCode != 0) {
@@ -402,6 +403,15 @@ Future<void> install() async {
     outln("You might want to set up an automated renewal process using certbot or similar.", Color.warn);
   }
 
+  // copy the entire ./panel/ folder recursively to /var/www/panel/
+  result = await Process.run("docker", ["exec", "ff_alarm_nginx", "mkdir", "-p", "/var/www/panel"]);
+
+  result = await Process.run("docker", ["cp", "panel/build/web/.", "ff_alarm_nginx:/var/www/panel"]);
+  if (result.exitCode != 0) {
+    outln("Failed to copy the web panel files.", Color.error);
+    return;
+  }
+
   result = await Process.run("docker", ["restart", "ff_alarm_nginx"]);
   if (result.exitCode != 0) {
     outln("Failed to restart the Nginx container.", Color.error);
@@ -410,7 +420,10 @@ Future<void> install() async {
 
   outln("Nginx server installed successfully.", Color.success);
 
-  outln("Please open the web panel at https://${config['nginx_host']} and login with the credentials you provided.", Color.success);
+  outln(
+    "Please open the web panel at http${config['nginx_ssl'] == 'y' ? 's' : ''}://${config['nginx_host']}:${config['nginx_port']}/panel/ and login with the credentials you provided, to complete the setup.",
+    Color.success,
+  );
 }
 
 void getInputValue(Map<String, dynamic> config, String prompt, String key, bool Function(String? input) check) {

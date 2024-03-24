@@ -117,8 +117,12 @@ Future<void> initServer() async {
       }
 
       List<String> authParts = decodedAuth.split(' ');
-      if (authParts.first == "Basic") {
+      if (authParts.first == "tetra") {
         // TODO implement API authentication from TETRA servers
+        return;
+      }
+      if (authParts.first == "admin") {
+        // TODO implement API authentication from admin panel
         return;
       }
 
