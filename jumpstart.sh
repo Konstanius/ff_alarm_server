@@ -27,5 +27,8 @@ then
   echo 'export PATH="$PATH:/usr/lib/dart/bin"' >> ~/.bashrc
 fi
 
+# pub get
+dart pub get
+
 # Run installer.dart
 dart run ./init/installer.dart
