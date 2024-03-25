@@ -15,8 +15,7 @@ Future<void> install() async {
   // if ./resources doesnt exist or isnt a dir, set working dir to ..
   if (!Directory("resources").existsSync()) {
     Directory.current = Directory.current.parent;
-    outln("Changed working directory to ${Directory.current.path}",
-        Color.verbose);
+    outln("Changed working directory to ${Directory.current.path}", Color.verbose);
   }
 
   /// Requires Linux
@@ -29,8 +28,7 @@ Future<void> install() async {
   try {
     var result = await Process.run('docker', ['--version']);
     if (result.exitCode != 0) {
-      outln(
-          'Docker is not installed. Please install Docker first.', Color.error);
+      outln('Docker is not installed. Please install Docker first.', Color.error);
       return;
     }
   } catch (e) {
@@ -42,21 +40,16 @@ Future<void> install() async {
   try {
     var result = await Process.run('dart', ['--version']);
     if (result.exitCode != 0) {
-      outln('Dart is not accessible. Please add the dart bin to your PATH.',
-          Color.error);
+      outln('Dart is not accessible. Please add the dart bin to your PATH.', Color.error);
       return;
     }
-    var version =
-        RegExp(r'\d+\.\d+\.\d+').firstMatch(result.stdout.toString())?.group(0);
-    if (version == null ||
-        version.compareTo('3.0.0') < 0 ||
-        version.compareTo('4.0.0') >= 0) {
+    var version = RegExp(r'\d+\.\d+\.\d+').firstMatch(result.stdout.toString())?.group(0);
+    if (version == null || version.compareTo('3.0.0') < 0 || version.compareTo('4.0.0') >= 0) {
       outln('Dart version >= 3.0.0 and < 4.0.0 is required.', Color.error);
       return;
     }
   } catch (e) {
-    outln('Dart is not accessible. Please add the dart bin to your PATH.',
-        Color.error);
+    outln('Dart is not accessible. Please add the dart bin to your PATH.', Color.error);
     return;
   }
 
@@ -83,6 +76,17 @@ Future<void> install() async {
   ///
   /// (Setup):
   /// - prompt to open web admin panel and login
+
+  if (!File('resources/firebase/firebase-admin-token.json').existsSync()) {
+    outln('resources/firebase/firebase-admin-token.json is missing.', Color.error);
+    outln('If this is your first time setting this up, please contact konstantin.dubnack@gmail.com to request a token.', Color.error);
+    return;
+  }
+
+  if (!File('resources/firebase/FCMService.jar').existsSync()) {
+    outln('resources/firebase/FCMService.jar is missing. Please check the git clone.', Color.error);
+    return;
+  }
 
   Map<String, dynamic> config = {};
 
@@ -121,22 +125,6 @@ Future<void> install() async {
     (input) => input != null && input.isNotEmpty,
   );
 
-  if (!File('resources/firebase/firebase-admin-token.json').existsSync()) {
-    outln('resources/firebase/firebase-admin-token.json is missing.',
-        Color.error);
-    outln(
-        'If this is your first time setting this up, please contact konstantin.dubnack@gmail.com to request a token.',
-        Color.error);
-    return;
-  }
-
-  if (!File('resources/firebase/FCMService.jar').existsSync()) {
-    outln(
-        'resources/firebase/FCMService.jar is missing. Please check the git clone.',
-        Color.error);
-    return;
-  }
-
   getInputValue(
     config,
     'Enter the domain for the Nginx server (example.com):',
@@ -166,16 +154,12 @@ Future<void> install() async {
   );
   if (config['nginx_ssl'] == 'y') {
     if (!File('resources/cert.pem').existsSync()) {
-      outln(
-          'resources/cert.pem is missing. Please generate a certificate and key.',
-          Color.error);
+      outln('resources/cert.pem is missing. Please generate a certificate and key.', Color.error);
       return;
     }
 
     if (!File('resources/key.pem').existsSync()) {
-      outln(
-          'resources/key.pem is missing. Please generate a certificate and key.',
-          Color.error);
+      outln('resources/key.pem is missing. Please generate a certificate and key.', Color.error);
       return;
     }
   }
@@ -200,14 +184,11 @@ Future<void> install() async {
   for (int i = 0; i < 32; i++) {
     secret += String.fromCharCode(random.nextInt(26) + 65);
   }
-  String qrContent =
-      "otpauth://totp/FF%20Alarm%20Administrator:${config['admin_name']}?secret=$secret&issuer=FF%20Alarm%20${config['nginx_host']}";
+  String qrContent = "otpauth://totp/FF%20Alarm%20Administrator:${config['admin_name']}?secret=$secret&issuer=FF%20Alarm%20${config['nginx_host']}";
   config['admin_2fa'] = qrContent;
   outln('TOTP 2FA secret: $secret', Color.verbose);
   outln('TOTP 2FA access code: $qrContent', Color.verbose);
-  outln(
-      'Scan the below QR code on your phone using Google Authenticator or similar. MAKE SURE TO NOT LOOSE THIS CODE!',
-      Color.verbose);
+  outln('Scan the below QR code on your phone using Google Authenticator or similar. MAKE SURE TO NOT LOOSE THIS CODE!', Color.verbose);
   generate(qrContent, small: true);
 
   outln('Please enter the 6 digit code from your 2FA app:', Color.verbose);
@@ -221,16 +202,12 @@ Future<void> install() async {
     outln('Invalid code. Please try again.', Color.error);
   }
 
-  outln(
-      'Setup successful. Proceeding with installation of the FF Alarm Server...',
-      Color.success);
+  outln('Setup successful. Proceeding with installation of the FF Alarm Server...', Color.success);
 
   // Check if docker network exists, if not, create it
-  var result =
-      await Process.run("docker", ["network", "ls", "--format", "{{.Name}}"]);
+  var result = await Process.run("docker", ["network", "ls", "--format", "{{.Name}}"]);
   if (!result.stdout.toString().contains("ff_alarm_network")) {
-    result =
-        await Process.run("docker", ["network", "create", "ff_alarm_network"]);
+    result = await Process.run("docker", ["network", "create", "ff_alarm_network"]);
     if (result.exitCode != 0) {
       outln("Failed to create the network.", Color.error);
       return;
@@ -240,9 +217,7 @@ Future<void> install() async {
   // Check if the database exists
   result = await Process.run("docker", ["ps", "-a", "--format", "{{.Names}}"]);
   if (result.stdout.toString().contains("ff_alarm_postgres")) {
-    outln(
-        "Database container already exists. Continuing will delete the existing database and create a new one.",
-        Color.warn);
+    outln("Database container already exists. Continuing will delete the existing database and create a new one.", Color.warn);
     bool confirmed = confirm();
     if (!confirmed) {
       outln("Installation cancelled.", Color.error);
@@ -286,8 +261,7 @@ Future<void> install() async {
   outln("Database container created and started.", Color.success);
 
   // compile the FF Alarm server
-  result = await Process.run(
-      "dart", ["compile", "exe", "main.dart", "-o", "resources/main.exe"]);
+  result = await Process.run("dart", ["compile", "exe", "main.dart", "-o", "resources/main.exe"]);
   if (result.exitCode != 0) {
     outln("Failed to compile the FF Alarm server.", Color.error);
     return;
@@ -322,18 +296,8 @@ Future<void> install() async {
   configFile.writeAsStringSync(encoder.convert(newConfig));
 
   // create the FF Alarm server
-  result = await Process.run("docker", [
-    "create",
-    "--hostname",
-    "ff_alarm_server",
-    "--name",
-    "ff_alarm_server",
-    "--network",
-    "ff_alarm_network",
-    "-v",
-    "${Directory.current.path}/resources:/hbv/resources",
-    "ff_alarm_server"
-  ]);
+  result = await Process.run("docker",
+      ["create", "--hostname", "ff_alarm_server", "--name", "ff_alarm_server", "--network", "ff_alarm_network", "-v", "${Directory.current.path}/resources:/hbv/resources", "ff_alarm_server"]);
   if (result.exitCode != 0) {
     outln("Failed to create the FF Alarm server container.", Color.error);
     return;
@@ -347,16 +311,11 @@ Future<void> install() async {
   // set up chmod -R 777 resources
   result = await Process.run("sudo", ["chmod", "-R", "777", "resources"]);
   if (result.exitCode != 0) {
-    outln(
-        "Failed to set permissions for the resources folder. Please run 'sudo chmod -R 777 resources' manually. Pausing until this is done.",
-        Color.error);
+    outln("Failed to set permissions for the resources folder. Please run 'sudo chmod -R 777 resources' manually. Pausing until this is done.", Color.error);
     while (true) {
       result = await Process.run("ls", ["-l", "resources"]);
       // each line should start with "<any char>rwxrwxrwx"
-      if (result.stdout
-          .toString()
-          .split("\n")
-          .every((line) => RegExp(r".rwxrwxrwx").hasMatch(line))) {
+      if (result.stdout.toString().split("\n").every((line) => RegExp(r".rwxrwxrwx").hasMatch(line))) {
         outln("Permissions set successfully.", Color.success);
         break;
       }
@@ -415,41 +374,32 @@ Future<void> install() async {
     return;
   }
 
-  result = await Process.run("docker",
-      ["cp", "resources/nginx.conf", "ff_alarm_nginx:/etc/nginx/nginx.conf"]);
+  result = await Process.run("docker", ["cp", "resources/nginx.conf", "ff_alarm_nginx:/etc/nginx/nginx.conf"]);
   if (result.exitCode != 0) {
     outln("Failed to copy the Nginx configuration file.", Color.error);
     return;
   }
 
   if (config['nginx_ssl'] == 'y') {
-    result = await Process.run("docker",
-        ["cp", "resources/cert.pem", "ff_alarm_nginx:/etc/ssl/cert.pem"]);
+    result = await Process.run("docker", ["cp", "resources/cert.pem", "ff_alarm_nginx:/etc/ssl/cert.pem"]);
     if (result.exitCode != 0) {
       outln("Failed to copy the SSL certificate.", Color.error);
       return;
     }
-    result = await Process.run("docker",
-        ["cp", "resources/key.pem", "ff_alarm_nginx:/etc/ssl/key.pem"]);
+    result = await Process.run("docker", ["cp", "resources/key.pem", "ff_alarm_nginx:/etc/ssl/key.pem"]);
     if (result.exitCode != 0) {
       outln("Failed to copy the SSL key.", Color.error);
       return;
     }
 
-    outln(
-        "Please ensure that the SSL certificates are renewed before they expire.",
-        Color.warn);
-    outln(
-        "You might want to set up an automated renewal process using certbot or similar.",
-        Color.warn);
+    outln("Please ensure that the SSL certificates are renewed before they expire.", Color.warn);
+    outln("You might want to set up an automated renewal process using certbot or similar.", Color.warn);
   }
 
   // copy the entire ./panel/ folder recursively to /var/www/panel/
-  result = await Process.run(
-      "docker", ["exec", "ff_alarm_nginx", "mkdir", "-p", "/var/www/panel"]);
+  result = await Process.run("docker", ["exec", "ff_alarm_nginx", "mkdir", "-p", "/var/www/panel"]);
 
-  result = await Process.run(
-      "docker", ["cp", "panel/build/web/.", "ff_alarm_nginx:/var/www/panel"]);
+  result = await Process.run("docker", ["cp", "panel/build/web/.", "ff_alarm_nginx:/var/www/panel"]);
   if (result.exitCode != 0) {
     outln("Failed to copy the web panel files.", Color.error);
     return;
@@ -469,8 +419,7 @@ Future<void> install() async {
   );
 }
 
-void getInputValue(Map<String, dynamic> config, String prompt, String key,
-    bool Function(String? input) check) {
+void getInputValue(Map<String, dynamic> config, String prompt, String key, bool Function(String? input) check) {
   outln(prompt, Color.verbose);
   String? input = stdin.readLineSync();
   while (!check(input)) {
