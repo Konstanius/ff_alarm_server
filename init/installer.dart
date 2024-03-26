@@ -231,6 +231,8 @@ Future<void> install() async {
     }
   }
 
+  outln("Creating database container...", Color.verbose);
+
   // create the database container
   result = await Process.run("docker", [
     "create",
@@ -258,7 +260,7 @@ Future<void> install() async {
     return;
   }
 
-  outln("Database container created and started.", Color.success);
+  outln("Done creating database container, compiling FF Alarm backend...", Color.success);
 
   // compile the FF Alarm server
   result = await Process.run("dart", ["compile", "exe", "main.dart", "-o", "resources/main.exe"]);
@@ -267,12 +269,16 @@ Future<void> install() async {
     return;
   }
 
+  outln("Done compiling FF Alarm backend, building Docker image...", Color.success);
+
   // build the docker image
   result = await Process.run("docker", ["build", "-t", "ff_alarm_server", "."]);
   if (result.exitCode != 0) {
     outln("Failed to build the FF Alarm server image.", Color.error);
     return;
   }
+
+  outln("Done building Docker image, setting up FF Alarm backend...", Color.success);
 
   // set the config file
   File configFile = File("resources/config.json");
@@ -297,7 +303,7 @@ Future<void> install() async {
 
   // create the FF Alarm server
   result = await Process.run("docker",
-      ["create", "--hostname", "ff_alarm_server", "--name", "ff_alarm_server", "--network", "ff_alarm_network", "-v", "${Directory.current.path}/resources:/hbv/resources", "ff_alarm_server"]);
+      ["create", "--hostname", "ff_alarm_server", "--name", "ff_alarm_server", "--network", "ff_alarm_network", "-v", "${Directory.current.path}/resources:/ff/resources", "ff_alarm_server"]);
   if (result.exitCode != 0) {
     outln("Failed to create the FF Alarm server container.", Color.error);
     return;
@@ -324,7 +330,7 @@ Future<void> install() async {
     }
   }
 
-  outln("FF Alarm Server installed successfully.", Color.success);
+  outln("Done setting up FF Alarm backend, installing Nginx server...", Color.success);
 
   await Future.delayed(Duration(seconds: 3));
 
@@ -391,6 +397,8 @@ Future<void> install() async {
       outln("Failed to copy the SSL key.", Color.error);
       return;
     }
+
+    outln("SSL certificate and key copied successfully.", Color.success);
 
     outln("Please ensure that the SSL certificates are renewed before they expire.", Color.warn);
     outln("You might want to set up an automated renewal process using certbot or similar.", Color.warn);
