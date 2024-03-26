@@ -371,8 +371,6 @@ Future<void> install() async {
     "--network",
     "ff_alarm_network",
     "-p",
-    "80:80",
-    if (config['nginx_port'] != '80') "-p",
     "${config['nginx_port']}:${config['nginx_port']}",
     "nginx"
   ]);
@@ -411,8 +409,25 @@ Future<void> install() async {
     outln("You might want to set up an automated renewal process using certbot or similar.", Color.warn);
   }
 
+  // build the panel
+  Directory.current = "${Directory.current.path}/panel";
+  result = await Process.run("flutter", ["pub", "get"]);
+  if (result.exitCode != 0) {
+    outln("Failed to get the Flutter dependencies.", Color.error);
+    return;
+  }
+  result = await Process.run("flutter", ["build", "web", "--base-href", "/panel/"]);
+  if (result.exitCode != 0) {
+    outln("Failed to build the web panel.", Color.error);
+    return;
+  }
+
   // copy the entire ./panel/ folder recursively to /var/www/panel/
   result = await Process.run("docker", ["exec", "ff_alarm_nginx", "mkdir", "-p", "/var/www/panel"]);
+  if (result.exitCode != 0) {
+    outln("Failed to create the web panel directory.", Color.error);
+    return;
+  }
 
   result = await Process.run("docker", ["cp", "panel/build/web/.", "ff_alarm_nginx:/var/www/panel"]);
   if (result.exitCode != 0) {
