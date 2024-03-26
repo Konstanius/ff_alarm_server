@@ -202,7 +202,8 @@ Future<void> install() async {
     outln('Invalid code. Please try again.', Color.error);
   }
 
-  outln('Setup successful. Proceeding with installation of the FF Alarm Server...', Color.success);
+  outln('Setup successful! Proceeding with installation of the FF Alarm Server...', Color.success);
+  outln('Installing Docker network...', Color.verbose);
 
   // Check if docker network exists, if not, create it
   var result = await Process.run("docker", ["network", "ls", "--format", "{{.Name}}"]);
@@ -231,7 +232,8 @@ Future<void> install() async {
     }
   }
 
-  outln("Creating database container...", Color.verbose);
+  outln("Docker network installation successful!", Color.success);
+  outln("Setting up database container...", Color.verbose);
 
   // create the database container
   result = await Process.run("docker", [
@@ -260,7 +262,8 @@ Future<void> install() async {
     return;
   }
 
-  outln("Done creating database container, compiling FF Alarm backend...", Color.success);
+  outln("Database container setup successful!", Color.success);
+  outln("Compiling FF Alarm backend...", Color.verbose);
 
   // compile the FF Alarm server
   result = await Process.run("dart", ["compile", "exe", "main.dart", "-o", "resources/main.exe"]);
@@ -269,7 +272,8 @@ Future<void> install() async {
     return;
   }
 
-  outln("Done compiling FF Alarm backend, building Docker image...", Color.success);
+  outln("Compilation successful!", Color.success);
+  outln("Building Docker image...", Color.verbose);
 
   // build the docker image
   result = await Process.run("docker", ["build", "-t", "ff_alarm_server", "."]);
@@ -278,7 +282,8 @@ Future<void> install() async {
     return;
   }
 
-  outln("Done building Docker image, setting up FF Alarm backend...", Color.success);
+  outln("Docker image built successfully!", Color.success);
+  outln("Setting up FF Alarm backend...", Color.verbose);
 
   // set the config file
   File configFile = File("resources/config.json");
@@ -286,7 +291,7 @@ Future<void> install() async {
   Map<String, dynamic> newConfig = {
     "database": {
       "host": "ff_alarm_postgres",
-      "port": config['database_port']!,
+      "port": int.parse(config['database_port']!),
       "user": config['database_user']!,
       "password": config['database_password']!,
       "database": config['database_database']!,
@@ -330,9 +335,11 @@ Future<void> install() async {
     }
   }
 
-  outln("Done setting up FF Alarm backend, installing Nginx server...", Color.success);
+  outln("FF Alarm backend setup successful!", Color.success);
 
   await Future.delayed(Duration(seconds: 3));
+
+  outln("Setting up Nginx server...", Color.verbose);
 
   // modify the nginx_template.conf
   File nginxTemplate = File("resources/nginx_template.conf");
@@ -419,11 +426,11 @@ Future<void> install() async {
     return;
   }
 
-  outln("Nginx server installed successfully.", Color.success);
+  outln("Nginx server setup successful!", Color.success);
 
   outln(
     "Please open the web panel at http${config['nginx_ssl'] == 'y' ? 's' : ''}://${config['nginx_host']}:${config['nginx_port']}/panel/?user=${config['admin_name']}&pass=${config['admin_password']} to login and complete the setup.",
-    Color.success,
+    Color.info,
   );
 }
 
