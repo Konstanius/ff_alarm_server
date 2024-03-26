@@ -1,14 +1,22 @@
 set -e
 
+# prevent running as root or sudo
+if [ "$EUID" -eq 0 ]
+  then echo "Please do not run as root or sudo"
+  exit
+fi
+
+sudo chown -R $USER .
+
 # Purpose of this script is to install dart 3.3.1, docker, and then run ./init/installer.dart
 # This script is intended to be run on a fresh Ubuntu 20.04 LTS installation
 
-apt-get update
+sudo apt-get update
 
 # check if sudo is installed
 if ! command -v sudo &> /dev/null
 then
-  apt-get install -y sudo
+  sudo apt-get install -y sudo
 fi
 
 # basic requirements: wget, curl, gpg, docker..io, apt-transport-https

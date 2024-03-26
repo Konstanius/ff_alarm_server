@@ -3,14 +3,25 @@ import '../models/person.dart';
 import 'fcm_service.dart';
 
 abstract class FCMMethods {
-  static Future<void> sendTestAlarm() async {
-    List<Person> persons = await Person.getAll();
-
+  static Future<void> sendTestAlarm({List<String>? fcms}) async {
     Set<String> androidTokens = {};
     Set<String> iosTokens = {};
 
-    for (Person person in persons) {
-      for (String token in person.fcmTokens) {
+    if (fcms == null) {
+      List<Person> persons = await Person.getAll();
+      for (Person person in persons) {
+        for (String token in person.fcmTokens) {
+          if (token.startsWith("A")) {
+            androidTokens.add(token.substring(1));
+          } else if (token.startsWith("I")) {
+            iosTokens.add(token.substring(1));
+          } else {
+            // Should not happen, optionally for alternative platforms / future use
+          }
+        }
+      }
+    } else {
+      for (String token in fcms) {
         if (token.startsWith("A")) {
           androidTokens.add(token.substring(1));
         } else if (token.startsWith("I")) {
