@@ -5,7 +5,6 @@ import 'package:postgres/src/execution_context.dart';
 
 import '../server/init.dart';
 import '../utils/database.dart';
-import '../utils/generic.dart';
 import 'person.dart';
 import 'unit.dart';
 
@@ -152,11 +151,9 @@ class Alarm {
     }
   }
 
-  static Future<Alarm> getById(int id) async {
+  static Future<Alarm?> getById(int id) async {
     var result = await Database.connection.query("SELECT * FROM alarms WHERE id = $id;");
-    if (result.isEmpty) {
-      throw RequestException(HttpStatus.notFound, "Die Alarmierung konnte nicht gefunden werden.");
-    }
+    if (result.isEmpty) return null;
     return Alarm.fromDatabase(result[0].toColumnMap());
   }
 

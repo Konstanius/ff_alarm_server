@@ -8,7 +8,7 @@ fi
 
 sudo chown -R $USER .
 
-# Purpose of this script is to install dart 3.3.1, docker, and then run ./init/installer.dart
+# Purpose of this script is to install Flutter 3.3.1, docker, and then run ./init/installer.dart
 # This script is intended to be run on a fresh Ubuntu 20.04 LTS installation
 
 sudo apt-get update

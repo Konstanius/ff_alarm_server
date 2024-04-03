@@ -2,6 +2,8 @@ name: ff_alarm_server
 description: "Eine Alarmierungsapp für freiwillige Feuerwehren."
 version: 1.0.0
 
+publish_to: 'none'
+
 environment:
   sdk: ^3.0.0
 
@@ -11,6 +13,12 @@ dependencies:
   qr_terminal: 1.1.1
   crypto: 3.0.3
   base32: 2.1.3
+  dargon2:
+    path: ./packages/dargon2/dargon2
+  dargon2_core:
+    path: ./packages/dargon2/dargon2_core
+  dargon2_interface:
+    path: ./packages/dargon2/dargon2_interface
 
 dev_dependencies:
   lints: ^3.0.0

@@ -13,6 +13,8 @@ VOLUME /ff/resources
 # set workdir
 WORKDIR /ff/resources
 
+ENV DARGON2_LIB_PATH=/ff/resources/libargon2.so.1
+
 RUN apt-get update
 
 # install java

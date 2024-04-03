@@ -32,10 +32,9 @@ abstract class FCMMethods {
       }
     }
 
-    DateTime now = DateTime.now();
-
     await Future.delayed(const Duration(seconds: 5));
 
+    DateTime now = DateTime.now();
     Alarm alarm = Alarm(
       id: 0,
       type: "Test",

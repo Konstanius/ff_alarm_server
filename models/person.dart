@@ -111,11 +111,9 @@ class Person {
     }
   }
 
-  static Future<Person> getById(int id) async {
+  static Future<Person?> getById(int id) async {
     var result = await Database.connection.query("SELECT * FROM persons WHERE id = $id;");
-    if (result.isEmpty) {
-      throw RequestException(HttpStatus.notFound, "Die Person konnte nicht gefunden werden.");
-    }
+    if (result.isEmpty) return null;
     return Person.fromDatabase(result[0].toColumnMap());
   }
 

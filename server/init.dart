@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:intl/intl.dart';
 
+import '../models/backend/session.dart';
 import '../models/person.dart';
 import '../utils/console.dart';
 import '../utils/generic.dart';
@@ -126,19 +127,23 @@ Future<void> initServer() async {
         return;
       }
 
-      int personId = int.parse(authParts[0]);
+      int sessionId = int.parse(authParts[0]);
       String key = authParts[1];
 
-      Person? person;
-      try {
-        person = await Person.getById(personId);
-      } catch (e) {
-        outln("Error: $e", Color.error);
+      Session? session = await Session.getById(sessionId);
+      if (session == null) {
         await callback(HttpStatus.unauthorized, {"message": "Kein Zugriff auf diese Resource"});
         return;
       }
 
-      if (person.registrationKey != key) {
+      bool valid = await session.validate(key);
+      if (!valid) {
+        await callback(HttpStatus.unauthorized, {"message": "Kein Zugriff auf diese Resource"});
+        return;
+      }
+
+      Person? person = await Person.getById(session.personId);
+      if (person == null) {
         await callback(HttpStatus.unauthorized, {"message": "Kein Zugriff auf diese Resource"});
         return;
       }
@@ -193,6 +198,7 @@ Future<void> initServer() async {
 List<RealtimeConnection> realtimeConnections = [];
 
 class RealtimeConnection {
+  Session session;
   Person person;
   WebSocket socket;
   late Stream stream;
@@ -200,7 +206,7 @@ class RealtimeConnection {
   late DateTime lastActive;
   bool controller = false;
 
-  RealtimeConnection(this.person, this.socket) {
+  RealtimeConnection(this.session, this.person, this.socket) {
     created = DateTime.now();
     lastActive = DateTime.now();
     stream = socket.asBroadcastStream();
@@ -316,13 +322,27 @@ Future<void> handleRealtime(HttpRequest request) async {
       return;
     }
 
-    int personId = int.parse(authParts[0]);
+    int sessionId = int.parse(authParts[0]);
     String key = authParts[1];
 
-    Person? person;
-    try {
-      person = await Person.getById(personId);
-    } catch (e) {
+    Session? session = await Session.getById(sessionId);
+    if (session == null) {
+      request.response.statusCode = HttpStatus.unauthorized;
+      await request.response.flush();
+      await request.response.close();
+      return;
+    }
+
+    bool valid = await session.validate(key);
+    if (!valid) {
+      request.response.statusCode = HttpStatus.unauthorized;
+      await request.response.flush();
+      await request.response.close();
+      return;
+    }
+
+    Person? person = await Person.getById(session.personId);
+    if (person == null) {
       request.response.statusCode = HttpStatus.unauthorized;
       await request.response.flush();
       await request.response.close();
@@ -339,7 +359,7 @@ Future<void> handleRealtime(HttpRequest request) async {
     if (WebSocketTransformer.isUpgradeRequest(request)) {
       request.response.bufferOutput = false;
       WebSocket webSocket = await WebSocketTransformer.upgrade(request);
-      RealtimeConnection connection = RealtimeConnection(person, webSocket);
+      RealtimeConnection connection = RealtimeConnection(session, person, webSocket);
       connection.listen();
     } else {
       request.response.statusCode = HttpStatus.badRequest;

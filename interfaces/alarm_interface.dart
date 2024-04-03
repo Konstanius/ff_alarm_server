@@ -49,7 +49,12 @@ abstract class AlarmInterface {
     }
     int alarmId = data["alarmId"];
 
-    Alarm alarm = await Alarm.getById(alarmId);
+    Alarm? alarm = await Alarm.getById(alarmId);
+    if (alarm == null) {
+      await callback(HttpStatus.notFound, {"message": "Alarmierung nicht gefunden"});
+      return;
+    }
+
     if (!await alarm.canSee(person)) {
       await callback(HttpStatus.forbidden, {"message": "Du bist nicht berechtigt, auf diese Alarmierung zuzugreifen."});
       return;
@@ -107,7 +112,12 @@ abstract class AlarmInterface {
     String hasAlarm = data["alarm"];
     var split = hasAlarm.split(":");
     int alarmId = int.parse(split[0]);
-    Alarm alarm = await Alarm.getById(alarmId);
+    Alarm? alarm = await Alarm.getById(alarmId);
+    if (alarm == null) {
+      await callback(HttpStatus.notFound, {"message": "Alarmierung nicht gefunden"});
+      return;
+    }
+
     if (alarm.units.isEmpty) {
       await callback(HttpStatus.ok, {});
       return;

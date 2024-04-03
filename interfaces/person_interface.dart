@@ -3,19 +3,6 @@ import 'dart:io';
 import '../models/person.dart';
 
 abstract class PersonInterface {
-  static Future<void> checkAuth(Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
-    int id = data["id"];
-    String authKey = data["authKey"];
-
-    Person person = await Person.getById(id);
-    if (person.registrationKey != authKey) {
-      await callback(HttpStatus.forbidden, {"message": "Ungültiger Code"});
-      return;
-    }
-
-    await callback(HttpStatus.ok, person.toJson());
-  }
-
   static Future<void> getAll(Person person, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
     Map<int, DateTime> updates = {};
 
