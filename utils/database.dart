@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:postgres/postgres.dart';
 
 import '../models/alarm.dart';
+import '../models/backend/session.dart';
 import '../models/person.dart';
 import '../models/station.dart';
 import '../models/unit.dart';
@@ -44,5 +45,6 @@ abstract class Database {
     await Unit.initialize();
     await Person.initialize();
     await Alarm.initialize();
+    await Session.initialize();
   }
 }

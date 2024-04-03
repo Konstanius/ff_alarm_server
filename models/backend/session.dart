@@ -45,7 +45,7 @@ class Session {
     };
   }
 
-  static Future<void> init() async {
+  static Future<void> initialize() async {
     var result = await Database.connection.query("SELECT EXISTS ("
         "SELECT FROM information_schema.tables "
         "WHERE table_schema = 'public' "
