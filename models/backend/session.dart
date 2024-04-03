@@ -79,7 +79,7 @@ class Session {
   static Future<void> insert(Session session) async {
     session.updatedAt = DateTime.now();
     var result = await Database.connection.query(
-      "INSERT INTO sessions (person_id, token_hash, user_agent, created_at, updated_at, expires_at) VALUES (@person_id, @ip, @token_hash, @user_agent, @created_at, @updated_at, @expires_at) RETURNING id;",
+      "INSERT INTO sessions (person_id, token_hash, user_agent, created_at, updated_at, expires_at) VALUES (@person_id, @token_hash, @user_agent, @created_at, @updated_at, @expires_at) RETURNING id;",
       substitutionValues: session.toDatabase(),
     );
     session.id = result[0][0];
