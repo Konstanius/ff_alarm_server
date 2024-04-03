@@ -349,13 +349,6 @@ Future<void> handleRealtime(HttpRequest request) async {
       return;
     }
 
-    if (person.registrationKey != key) {
-      request.response.statusCode = HttpStatus.unauthorized;
-      await request.response.flush();
-      await request.response.close();
-      return;
-    }
-
     if (WebSocketTransformer.isUpgradeRequest(request)) {
       request.response.bufferOutput = false;
       WebSocket webSocket = await WebSocketTransformer.upgrade(request);
