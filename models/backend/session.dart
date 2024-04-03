@@ -27,9 +27,9 @@ class Session {
       personId: json["person_id"],
       tokenHash: json["token_hash"],
       userAgent: json["user_agent"],
-      createdAt: DateTime.parse(json["created_at"]),
-      updatedAt: DateTime.parse(json["updated_at"]),
-      expiresAt: DateTime.parse(json["expires_at"]),
+      createdAt: DateTime.fromMillisecondsSinceEpoch(json["created_at"]),
+      updatedAt: DateTime.fromMillisecondsSinceEpoch(json["updated_at"]),
+      expiresAt: DateTime.fromMillisecondsSinceEpoch(json["expires_at"]),
     );
   }
 
@@ -39,9 +39,9 @@ class Session {
       "person_id": personId,
       "token_hash": tokenHash,
       "user_agent": userAgent,
-      "created_at": createdAt.toIso8601String(),
-      "updated_at": updatedAt.toIso8601String(),
-      "expires_at": expiresAt.toIso8601String(),
+      "created_at": createdAt.millisecondsSinceEpoch,
+      "updated_at": updatedAt.millisecondsSinceEpoch,
+      "expires_at": expiresAt.millisecondsSinceEpoch,
     };
   }
 
