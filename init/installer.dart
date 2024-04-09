@@ -303,6 +303,7 @@ Future<void> install() async {
         "2fa": config['admin_2fa']!,
       }
     ],
+    "server": "${config['nginx_ssl'] == 'y' ? 's' : ''}://${config['nginx_host']}:${config['nginx_port']}",
   };
   configFile.writeAsStringSync(encoder.convert(newConfig));
 

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import '../server/init.dart';
+import '../utils/config.dart';
 import '../utils/database.dart';
 import '../utils/generic.dart';
 import 'person.dart';
@@ -29,6 +30,7 @@ class Unit {
   });
 
   static const Map<String, String> jsonShorts = {
+    "server": "s",
     "id": "i",
     "stationId": "si",
     "unitType": "ut",
@@ -56,6 +58,7 @@ class Unit {
 
   Map<String, dynamic> toJson() {
     return {
+      jsonShorts["server"]!: Config.config["server"],
       jsonShorts["id"]!: id,
       jsonShorts["stationId"]!: stationId,
       jsonShorts["unitType"]!: unitType,

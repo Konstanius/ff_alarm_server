@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:postgres/src/execution_context.dart';
 
 import '../server/init.dart';
+import '../utils/config.dart';
 import '../utils/database.dart';
 import 'person.dart';
 import 'unit.dart';
@@ -34,6 +35,7 @@ class Alarm {
   });
 
   static const Map<String, String> jsonShorts = {
+    "server": "s",
     "id": "i",
     "type": "t",
     "word": "w",
@@ -70,6 +72,7 @@ class Alarm {
 
   Map<String, dynamic> toJson() {
     return {
+      jsonShorts["server"]!: Config.config["server"],
       jsonShorts["id"]!: id,
       jsonShorts["type"]!: type,
       jsonShorts["word"]!: word,

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import '../server/init.dart';
+import '../utils/config.dart';
 import '../utils/database.dart';
 import '../utils/generic.dart';
 import 'alarm.dart';
@@ -31,6 +32,7 @@ class Person {
   });
 
   static const Map<String, String> jsonShorts = {
+    "server": "s",
     "id": "i",
     "firstName": "f",
     "lastName": "l",
@@ -42,6 +44,7 @@ class Person {
 
   Map<String, dynamic> toJson() {
     return {
+      jsonShorts["server"]!: Config.config["server"],
       jsonShorts["id"]!: id,
       jsonShorts["firstName"]!: firstName,
       jsonShorts["lastName"]!: lastName,
