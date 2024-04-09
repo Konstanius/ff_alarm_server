@@ -23,7 +23,11 @@ abstract class HashUtils {
   static const int _randomKeyLength = 64;
 
   static Future<bool> compareHash(String plainText, String hash) async {
-    return await argon2.verifyHashString(plainText, hash, type: _argonType);
+    try {
+      return await argon2.verifyHashString(plainText, hash, type: _argonType);
+    } catch (e) {
+      return false;
+    }
   }
 
   static Future<String> generateHash(String plainText) async {

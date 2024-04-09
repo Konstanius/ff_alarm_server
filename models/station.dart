@@ -36,7 +36,7 @@ class Station {
     "name": "n",
     "area": "a",
     "prefix": "p",
-    "stationNumber": "s",
+    "stationNumber": "sn",
     "address": "ad",
     "coordinates": "c",
     "persons": "pe",
