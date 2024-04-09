@@ -118,6 +118,11 @@ Future<void> initServer() async {
       }
 
       List<String> authParts = decodedAuth.split(' ');
+      if (authParts.length != 2) {
+        await callback(HttpStatus.badRequest, {"message": "Die Anfrage konnte nicht verarbeitet werden"});
+        return;
+      }
+
       if (authParts.first == "tetra") {
         // TODO implement API authentication from TETRA servers
         return;
@@ -127,7 +132,11 @@ Future<void> initServer() async {
         return;
       }
 
-      int sessionId = int.parse(authParts[0]);
+      int? sessionId = int.tryParse(authParts[0]);
+      if (sessionId == null) {
+        await callback(HttpStatus.badRequest, {"message": "Die Anfrage konnte nicht verarbeitet werden"});
+        return;
+      }
       String key = authParts[1];
 
       Session? session = await Session.getById(sessionId);
