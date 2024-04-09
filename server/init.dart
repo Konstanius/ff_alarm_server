@@ -77,6 +77,12 @@ Future<void> initServer() async {
         request.response.add(data);
         await request.response.flush();
         await request.response.close();
+
+        if (statusCode != HttpStatus.ok) {
+          outln('Request failed with status code $statusCode: $response', Color.warn);
+          outln('Request: ${request.uri}, stacktrace:', Color.warn);
+          outln(StackTrace.current.toString().split('\n')[2], Color.warn);
+        }
       }
 
       if (request.headers.value('authorization') == null) {
