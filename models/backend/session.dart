@@ -115,7 +115,7 @@ class Session {
     if (tokenHash != HashUtils.lightHash(key)) return false;
 
     if (DateTime.now().difference(updatedAt).inDays > 1) {
-      expiresAt = DateTime.now().add(const Duration(days: 28));
+      expiresAt = DateTime.now().add(const Duration(days: 56));
       await update(this);
     }
 

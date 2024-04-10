@@ -43,7 +43,7 @@ abstract class GuestInterface {
       userAgent: userAgent,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
-      expiresAt: DateTime.now().add(const Duration(days: 28)),
+      expiresAt: DateTime.now().add(const Duration(days: 56)),
     );
     await Session.insert(session);
 
@@ -55,5 +55,32 @@ abstract class GuestInterface {
       "sessionId": session.id,
       "person": person.toJson(),
     });
+  }
+
+  static Future<void> logout(Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
+    int sessionId = data["sessionId"];
+    String token = data["token"];
+    String fcmToken = data["fcmToken"];
+
+    Session? session = await Session.getById(sessionId);
+    if (session == null) {
+      await callback(HttpStatus.notFound, {"message": "Sitzung nicht gefunden"});
+      return;
+    }
+
+    if (session.tokenHash != HashUtils.lightHash(token)) {
+      await callback(HttpStatus.forbidden, {"message": "Ungültiger Token"});
+      return;
+    }
+
+    await session.invalidate();
+
+    Person? person = await Person.getById(session.personId);
+    if (person != null) {
+      person.fcmTokens.remove("A$fcmToken");
+      person.fcmTokens.remove("I$fcmToken");
+    }
+
+    await callback(HttpStatus.ok, {});
   }
 }

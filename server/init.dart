@@ -60,6 +60,9 @@ Future<void> initServer() async {
 
       if (keyword == 'ping') {
         request.response.statusCode = HttpStatus.ok;
+        List<int> data = utf8.encode('{}');
+        request.response.contentLength = data.length;
+        request.response.add(data);
         await request.response.flush();
         await request.response.close();
         return;
