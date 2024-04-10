@@ -77,8 +77,8 @@ abstract class GuestInterface {
 
     Person? person = await Person.getById(session.personId);
     if (person != null) {
-      person.fcmTokens.remove("A$fcmToken");
-      person.fcmTokens.remove("I$fcmToken");
+      person.fcmTokens.remove(fcmToken);
+      await Person.update(person);
     }
 
     await callback(HttpStatus.ok, {});
