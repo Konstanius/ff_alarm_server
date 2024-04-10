@@ -19,5 +19,6 @@ abstract class AuthMethod {
 
   static const Map<String, Future<void> Function(Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback)> guestMethods = {
     "login": GuestInterface.login,
+    "logout": GuestInterface.logout,
   };
 }
