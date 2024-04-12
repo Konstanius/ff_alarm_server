@@ -126,7 +126,11 @@ abstract class AlarmInterface {
       }
     }
 
-    alarm.responses[person.id] = AlarmResponse(note: note, time: time, responses: responses);
+    if (responses.isNotEmpty) {
+      alarm.responses[person.id] = AlarmResponse(note: note, time: time, responses: responses);
+    } else {
+      alarm.responses.remove(person.id);
+    }
     await Alarm.update(alarm);
 
     await callback(HttpStatus.ok, alarm.toJson());

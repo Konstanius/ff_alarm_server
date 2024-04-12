@@ -272,6 +272,11 @@ class Alarm {
 
     for (var person in persons) {
       responses[person.id] = person.getForAlarm(this, unitMap, stationMap);
+
+      // remove if empty
+      if (responses[person.id]!.responses.isEmpty) {
+        responses.remove(person.id);
+      }
     }
 
     await update(this);
