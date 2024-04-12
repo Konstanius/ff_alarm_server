@@ -20,7 +20,19 @@ abstract class AlarmInterface {
     List<Map<String, dynamic>> response = [];
     Set<int> canSee = {};
 
+    Set<int> personUnits = person.allowedUnits.toSet();
+
     for (Alarm alarm in alarms) {
+      if (alarm.units.isNotEmpty && !alarm.responses.containsKey(person.id)) {
+        bool contained = false;
+        for (var unit in alarm.units) {
+          if (personUnits.contains(unit)) {
+            contained = true;
+            break;
+          }
+        }
+        if (!contained) continue;
+      }
       canSee.add(alarm.id);
       if (updates.containsKey(alarm.id) && updates[alarm.id]!.millisecondsSinceEpoch == alarm.updated.millisecondsSinceEpoch) continue;
       response.add(alarm.toJson());
