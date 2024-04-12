@@ -1,10 +1,6 @@
-import 'dart:io';
-
 import '../server/init.dart';
 import '../utils/config.dart';
 import '../utils/database.dart';
-import '../utils/generic.dart';
-import 'alarm.dart';
 import 'station.dart';
 import 'unit.dart';
 
@@ -16,7 +12,7 @@ class Person {
   List<Qualification> qualifications;
   List<String> fcmTokens;
   String registrationKey;
-  AlarmResponse? response;
+  Map<int, PersonStaticAlarmResponse> response;
   DateTime updated;
 
   Person({
@@ -38,7 +34,6 @@ class Person {
     "lastName": "l",
     "allowedUnits": "au",
     "qualifications": "q",
-    "response": "r",
     "updated": "up",
   };
 
@@ -50,7 +45,6 @@ class Person {
       jsonShorts["lastName"]!: lastName,
       jsonShorts["allowedUnits"]!: allowedUnits,
       jsonShorts["qualifications"]!: qualifications.map((e) => e.toString()).toList(),
-      jsonShorts["response"]!: response?.toJson(),
       jsonShorts["updated"]!: updated.millisecondsSinceEpoch,
     };
   }
@@ -73,7 +67,7 @@ class Person {
       }(),
       fcmTokens: data["fcmtokens"],
       registrationKey: data["registrationkey"],
-      response: AlarmResponse.fromJson(data["response"]),
+      response: PersonStaticAlarmResponse.fromJsonMap(data["response"]),
       updated: DateTime.fromMillisecondsSinceEpoch(data["updated"]),
     );
   }
@@ -87,7 +81,7 @@ class Person {
       "qualifications": qualifications.map((e) => e.toString()).join(","),
       "fcmtokens": fcmTokens,
       "registrationkey": registrationKey,
-      "response": response?.toJson(),
+      "response": PersonStaticAlarmResponse.toJsonMap(response),
       "updated": updated.millisecondsSinceEpoch,
     };
   }
@@ -169,7 +163,7 @@ class Person {
   }
 
   static Future<Set<int>> personsThatCanSee(int personId) async {
-    var stations = await Station.getByPersonId(personId);
+    var stations = await Station.getForPerson(personId);
     Set<int> canSee = {};
     for (var station in stations) {
       canSee.addAll(station.persons);
@@ -212,5 +206,153 @@ class Qualification {
   @override
   String toString() {
     return "$type:${start?.millisecondsSinceEpoch ?? 0}:${end?.millisecondsSinceEpoch ?? 0}";
+  }
+}
+
+class PersonStaticAlarmResponse {
+  int stationId;
+
+  /// 0 = off, 1 = none, 2 = always
+  int manualOverride;
+
+  /// List of DateTime to DateTime when it is definitely disabled
+  List<({DateTime start, DateTime end})> calendar = [];
+
+  /// EITHER Schichtplan OR Geofencing is enabled, not both
+  /// 0 = none, 1 = shiftPlan active, 2 = shiftPlan inactive, 3 = geofencing
+  int enabledMode;
+
+  /// List of day int, millisecond to millisecond when it is disabled
+  List<({int day, int start, int end})> shiftPlan;
+
+  /// List of LatLng to Radius in meters when it is enabled
+  List<({double latitude, double longitude, int radius})> geofencing;
+
+  PersonStaticAlarmResponse({
+    required this.stationId,
+    required this.manualOverride,
+    required this.calendar,
+    required this.enabledMode,
+    required this.shiftPlan,
+    required this.geofencing,
+  });
+
+  factory PersonStaticAlarmResponse.make({
+    required int stationId,
+    int? manualOverride,
+    List<({DateTime start, DateTime end})>? calendar,
+    int? enabledMode,
+    List<({int day, int start, int end})>? shiftPlan,
+    List<({double latitude, double longitude, int radius})>? geofencing,
+  }) {
+    return PersonStaticAlarmResponse(
+      stationId: stationId,
+      manualOverride: manualOverride ?? 1,
+      calendar: calendar ?? [],
+      enabledMode: enabledMode ?? 0,
+      shiftPlan: shiftPlan ?? [],
+      geofencing: geofencing ?? [],
+    );
+  }
+
+  static const Map<String, String> jsonShorts = {
+    "stationId": "s",
+    "manualOverride": "m",
+    "calendar": "c",
+    "enabledMode": "e",
+    "shiftPlan": "sp",
+    "geofencing": "g",
+  };
+
+  Map<String, dynamic> toJson() {
+    DateTime now = DateTime.now();
+    calendar.removeWhere((element) => element.end.isBefore(now) || element.end.isBefore(element.start));
+    return {
+      if (manualOverride != 1) jsonShorts["manualOverride"]!: manualOverride,
+      if (calendar.isNotEmpty) jsonShorts["calendar"]!: calendar.map((e) => "${e.start.millisecondsSinceEpoch};${e.end.millisecondsSinceEpoch}").toList(),
+      if (enabledMode != 0) jsonShorts["enabledMode"]!: enabledMode,
+      if (shiftPlan.isNotEmpty) jsonShorts["shiftPlan"]!: shiftPlan.map((e) => "${e.day};${e.start};${e.end}").toList(),
+      if (geofencing.isNotEmpty) jsonShorts["geofencing"]!: geofencing.map((e) => "${e.latitude};${e.longitude};${e.radius}").toList(),
+    };
+  }
+
+  factory PersonStaticAlarmResponse.fromJson(int stationId, Map<String, dynamic> json) {
+    int manualOverride = json[jsonShorts["manualOverride"]] ?? 1;
+
+    List<dynamic> calendar = json[jsonShorts["calendar"]] ?? [];
+    List<({DateTime start, DateTime end})> calendarList = [];
+    DateTime now = DateTime.now();
+    for (String item in calendar) {
+      try {
+        List<String> split = item.split(";");
+        DateTime start = DateTime.fromMillisecondsSinceEpoch(int.parse(split[0]));
+        DateTime end = DateTime.fromMillisecondsSinceEpoch(int.parse(split[1]));
+        if (end.isBefore(start)) continue;
+        if (end.isBefore(now)) continue;
+        calendarList.add((
+          start: start,
+          end: end,
+        ));
+      } catch (_) {}
+    }
+
+    int enabledMode = json[jsonShorts["enabledMode"]] ?? 0;
+
+    List<dynamic> shiftPlan = json[jsonShorts["shiftPlan"]] ?? [];
+    List<({int day, int start, int end})> shiftPlanList = [];
+    for (String item in shiftPlan) {
+      try {
+        List<String> split = item.split(";");
+        int day = int.parse(split[0]);
+        if (day < 0 || day > 6) continue;
+        shiftPlanList.add((
+          day: int.parse(split[0]),
+          start: int.parse(split[1]),
+          end: int.parse(split[2]),
+        ));
+      } catch (_) {}
+    }
+
+    List<dynamic> geofencing = json[jsonShorts["geofencing"]] ?? [];
+    List<({double latitude, double longitude, int radius})> geofencingList = [];
+    for (String item in geofencing) {
+      try {
+        List<String> split = item.split(";");
+        geofencingList.add((
+          latitude: double.parse(split[0]),
+          longitude: double.parse(split[1]),
+          radius: int.parse(split[2]),
+        ));
+      } catch (_) {}
+    }
+
+    return PersonStaticAlarmResponse(
+      stationId: stationId,
+      manualOverride: manualOverride,
+      calendar: calendarList,
+      enabledMode: enabledMode,
+      shiftPlan: shiftPlanList,
+      geofencing: geofencingList,
+    );
+  }
+
+  static Map<String, dynamic> toJsonMap(Map<int, PersonStaticAlarmResponse> responses) {
+    Map<String, dynamic> json = {};
+    responses.forEach((key, value) {
+      try {
+        json[key.toString()] = value.toJson();
+      } catch (_) {}
+    });
+    return json;
+  }
+
+  static Map<int, PersonStaticAlarmResponse> fromJsonMap(Map<String, dynamic> json) {
+    Map<int, PersonStaticAlarmResponse> responses = {};
+    json.forEach((key, value) {
+      try {
+        responses[int.parse(key)] = PersonStaticAlarmResponse.fromJson(int.parse(key), value);
+      } catch (_) {}
+    });
+    return responses;
   }
 }

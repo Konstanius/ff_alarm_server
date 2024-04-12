@@ -178,11 +178,6 @@ class Station {
     return result.map((e) => Station.fromDatabase(e.toColumnMap())).toList();
   }
 
-  static Future<List<Station>> getByPersonId(int personId) async {
-    var result = await Database.connection.query("SELECT * FROM stations WHERE $personId = ANY(persons);");
-    return result.map((e) => Station.fromDatabase(e.toColumnMap())).toList();
-  }
-
   static Future<void> broadcastChange(Station station) async {
     var json = station.toJson();
     for (var connection in realtimeConnections) {

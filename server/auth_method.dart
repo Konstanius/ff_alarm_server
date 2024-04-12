@@ -10,6 +10,7 @@ abstract class AuthMethod {
   static const Map<String, Future<void> Function(Person person, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback)> authMethods = {
     "stationGetAll": StationInterface.getAll,
     "personGetAll": PersonInterface.getAll,
+    "personSetResponse": PersonInterface.setResponse,
     "unitGetAll": UnitInterface.getAll,
     "alarmGetAll": AlarmInterface.getAll,
     "alarmSetResponse": AlarmInterface.setResponse,

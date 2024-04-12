@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import '../models/person.dart';
+import '../models/station.dart';
 
 abstract class PersonInterface {
   static Future<void> getAll(Person person, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
@@ -36,5 +37,19 @@ abstract class PersonInterface {
     }
 
     await callback(HttpStatus.ok, {"updated": response, "deleted": deleted});
+  }
+
+  static Future<void> setResponse(Person person, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
+    var responses = PersonStaticAlarmResponse.fromJsonMap(data);
+
+    var allStations = await Station.getForPerson(person.id);
+    Set<int> allStationIds = allStations.map((e) => e.id).toSet();
+    responses.removeWhere((key, value) => !allStationIds.contains(key));
+
+    var personCopy = await Person.getById(person.id);
+    personCopy!.response = responses;
+    await Person.update(personCopy);
+
+    await callback(HttpStatus.ok, {});
   }
 }
