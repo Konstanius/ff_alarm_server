@@ -272,11 +272,6 @@ class Alarm {
 
     for (var person in persons) {
       responses[person.id] = person.getForAlarm(this, unitMap, stationMap);
-
-      // remove if empty
-      if (responses[person.id]!.responses.isEmpty) {
-        responses.remove(person.id);
-      }
     }
 
     await update(this);
@@ -360,7 +355,8 @@ enum AlarmResponseType {
   under10(10),
   under15(15),
   onCall(-1),
-  notReady(-2);
+  notReady(-2),
+  notSet(-3);
 
   final int timeAmount;
 

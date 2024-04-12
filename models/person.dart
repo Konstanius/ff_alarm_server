@@ -201,10 +201,15 @@ class Person {
 
     Map<int, AlarmResponseType> responses = {};
     for (var station in stationsOfPerson) {
-      if (!response.containsKey(station.id)) continue;
+      if (!response.containsKey(station.id)) {
+        responses[station.id] = AlarmResponseType.notSet;
+        continue;
+      }
       var responseType = response[station.id]!;
       if (!responseType.shouldNotify()) {
         responses[station.id] = AlarmResponseType.notReady;
+      } else {
+        responses[station.id] = AlarmResponseType.notSet;
       }
     }
 
