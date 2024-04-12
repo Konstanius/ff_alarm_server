@@ -29,6 +29,7 @@ Future<void> install() async {
     var result = await Process.run('docker', ['--version']);
     if (result.exitCode != 0) {
       outln('Docker is not installed. Please install Docker first.', Color.error);
+      outln("Error: ${result.stderr}", Color.error);
       return;
     }
   } catch (e) {
@@ -41,6 +42,7 @@ Future<void> install() async {
     var result = await Process.run('dart', ['--version']);
     if (result.exitCode != 0) {
       outln('Dart is not accessible. Please add the dart bin to your PATH.', Color.error);
+      outln("Error: ${result.stderr}", Color.error);
       return;
     }
     var version = RegExp(r'\d+\.\d+\.\d+').firstMatch(result.stdout.toString())?.group(0);
@@ -211,6 +213,7 @@ Future<void> install() async {
     result = await Process.run("docker", ["network", "create", "ff_alarm_network"]);
     if (result.exitCode != 0) {
       outln("Failed to create the network.", Color.error);
+      outln("Error: ${result.stderr}", Color.error);
       return;
     }
   }
@@ -228,6 +231,7 @@ Future<void> install() async {
     result = await Process.run("docker", ["rm", "-f", "ff_alarm_postgres"]);
     if (result.exitCode != 0) {
       outln("Failed to delete the existing database container.", Color.error);
+      outln("Error: ${result.stderr}", Color.error);
       return;
     }
   }
@@ -254,11 +258,13 @@ Future<void> install() async {
   ]);
   if (result.exitCode != 0) {
     outln("Failed to create the database container.", Color.error);
+    outln("Error: ${result.stderr}", Color.error);
     return;
   }
   result = await Process.run("docker", ["start", "ff_alarm_postgres"]);
   if (result.exitCode != 0) {
     outln("Failed to start the database container.", Color.error);
+    outln("Error: ${result.stderr}", Color.error);
     return;
   }
 
@@ -269,6 +275,7 @@ Future<void> install() async {
   result = await Process.run("dart", ["compile", "exe", "main.dart", "-o", "resources/main.exe"]);
   if (result.exitCode != 0) {
     outln("Failed to compile the FF Alarm server.", Color.error);
+    outln("Error: ${result.stderr}", Color.error);
     return;
   }
 
@@ -279,6 +286,7 @@ Future<void> install() async {
   result = await Process.run("docker", ["build", "-t", "ff_alarm_server", "."]);
   if (result.exitCode != 0) {
     outln("Failed to build the FF Alarm server image.", Color.error);
+    outln("Error: ${result.stderr}", Color.error);
     return;
   }
 
@@ -312,11 +320,13 @@ Future<void> install() async {
       ["create", "--hostname", "ff_alarm_server", "--name", "ff_alarm_server", "--network", "ff_alarm_network", "-v", "${Directory.current.path}/resources:/ff/resources", "ff_alarm_server"]);
   if (result.exitCode != 0) {
     outln("Failed to create the FF Alarm server container.", Color.error);
+    outln("Error: ${result.stderr}", Color.error);
     return;
   }
   result = await Process.run("docker", ["start", "ff_alarm_server"]);
   if (result.exitCode != 0) {
     outln("Failed to start the FF Alarm server container.", Color.error);
+    outln("Error: ${result.stderr}", Color.error);
     return;
   }
 
@@ -377,18 +387,21 @@ Future<void> install() async {
   ]);
   if (result.exitCode != 0) {
     outln("Failed to create the Nginx container.", Color.error);
+    outln("Error: ${result.stderr}", Color.error);
     return;
   }
 
   result = await Process.run("docker", ["start", "ff_alarm_nginx"]);
   if (result.exitCode != 0) {
     outln("Failed to start the Nginx container.", Color.error);
+    outln("Error: ${result.stderr}", Color.error);
     return;
   }
 
   result = await Process.run("docker", ["cp", "resources/nginx.conf", "ff_alarm_nginx:/etc/nginx/nginx.conf"]);
   if (result.exitCode != 0) {
     outln("Failed to copy the Nginx configuration file.", Color.error);
+    outln("Error: ${result.stderr}", Color.error);
     return;
   }
 
@@ -396,11 +409,13 @@ Future<void> install() async {
     result = await Process.run("docker", ["cp", "resources/cert.pem", "ff_alarm_nginx:/etc/ssl/cert.pem"]);
     if (result.exitCode != 0) {
       outln("Failed to copy the SSL certificate.", Color.error);
+      outln("Error: ${result.stderr}", Color.error);
       return;
     }
     result = await Process.run("docker", ["cp", "resources/key.pem", "ff_alarm_nginx:/etc/ssl/key.pem"]);
     if (result.exitCode != 0) {
       outln("Failed to copy the SSL key.", Color.error);
+      outln("Error: ${result.stderr}", Color.error);
       return;
     }
 
@@ -415,30 +430,36 @@ Future<void> install() async {
   result = await Process.run("flutter", ["pub", "get"]);
   if (result.exitCode != 0) {
     outln("Failed to get the Flutter dependencies.", Color.error);
+    outln("Error: ${result.stderr}", Color.error);
     return;
   }
   result = await Process.run("flutter", ["build", "web", "--base-href", "/panel/"]);
   if (result.exitCode != 0) {
     outln("Failed to build the web panel.", Color.error);
+    outln("Error: ${result.stderr}", Color.error);
     return;
   }
+  Directory.current = Directory.current.parent;
 
   // copy the entire ./panel/ folder recursively to /var/www/panel/
   result = await Process.run("docker", ["exec", "ff_alarm_nginx", "mkdir", "-p", "/var/www/panel"]);
   if (result.exitCode != 0) {
     outln("Failed to create the web panel directory.", Color.error);
+    outln("Error: ${result.stderr}", Color.error);
     return;
   }
 
   result = await Process.run("docker", ["cp", "panel/build/web/.", "ff_alarm_nginx:/var/www/panel"]);
   if (result.exitCode != 0) {
     outln("Failed to copy the web panel files.", Color.error);
+    outln("Error: ${result.stderr}", Color.error);
     return;
   }
 
   result = await Process.run("docker", ["restart", "ff_alarm_nginx"]);
   if (result.exitCode != 0) {
     outln("Failed to restart the Nginx container.", Color.error);
+    outln("Error: ${result.stderr}", Color.error);
     return;
   }
 
