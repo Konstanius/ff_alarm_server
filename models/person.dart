@@ -96,14 +96,14 @@ class Person {
     if (result[0][0] == false) {
       await Database.connection.query("CREATE TABLE persons ("
           "id SERIAL PRIMARY KEY,"
-          "firstname TEXT,"
-          "lastname TEXT,"
-          "allowedunits INTEGER[],"
-          "qualifications TEXT,"
-          "fcmtokens TEXT[],"
-          "registrationkey TEXT,"
-          "response JSONB,"
-          "updated BIGINT"
+          "firstname TEXT NOT NULL,"
+          "lastname TEXT NOT NULL,"
+          "allowedunits INTEGER[] NOT NULL,"
+          "qualifications TEXT NOT NULL,"
+          "fcmtokens TEXT[] NOT NULL,"
+          "registrationkey TEXT NOT NULL,"
+          "response JSONB NOT NULL,"
+          "updated BIGINT NOT NULL"
           ");");
     }
   }
@@ -253,6 +253,44 @@ class PersonStaticAlarmResponse {
       shiftPlan: shiftPlan ?? [],
       geofencing: geofencing ?? [],
     );
+  }
+
+  bool shouldNotify() {
+    // manualOverride = 0 means everything is disabled
+    if (manualOverride == 0) return false;
+    // manualOverride = 2 means everything is enabled
+    if (manualOverride == 2) return true;
+
+    DateTime now = DateTime.now();
+    // if the calendar is not empty, check if we are in a disabled time
+    if (calendar.isNotEmpty) {
+      for (var item in calendar) {
+        if (now.isAfter(item.start) && now.isBefore(item.end)) return false;
+      }
+    }
+
+    if (enabledMode == 0) return true;
+
+    // if shiftPlan is not empty and enabledMode is 1 or 2
+    if ((enabledMode == 1 || enabledMode == 2)) {
+      int day = now.weekday;
+      int dayMillis = now.hour * 3600000 + now.minute * 60000 + now.second * 1000 + now.millisecond;
+      if (enabledMode == 1) {
+        for (var item in shiftPlan) {
+          if (item.day == day && dayMillis >= item.start && dayMillis <= item.end) return true;
+        }
+
+        return false;
+      } else if (enabledMode == 2) {
+        for (var item in shiftPlan) {
+          if (item.day == day && dayMillis >= item.start && dayMillis <= item.end) return false;
+        }
+
+        return true;
+      }
+    }
+
+    return true;
   }
 
   static const Map<String, String> jsonShorts = {

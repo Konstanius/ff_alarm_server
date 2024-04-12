@@ -109,14 +109,14 @@ class Unit {
     if (result[0][0] == false) {
       await Database.connection.query("CREATE TABLE units ("
           "id SERIAL PRIMARY KEY,"
-          "stationid INTEGER,"
-          "unittype INTEGER,"
-          "unitidentifier INTEGER,"
-          "unitdescription TEXT,"
-          "status INTEGER,"
-          "positions INTEGER[],"
-          "capacity INTEGER,"
-          "updated BIGINT"
+          "stationid INTEGER NOT NULL,"
+          "unittype INTEGER NOT NULL,"
+          "unitidentifier INTEGER NOT NULL,"
+          "unitdescription TEXT NOT NULL,"
+          "status INTEGER NOT NULL,"
+          "positions INTEGER[] NOT NULL,"
+          "capacity INTEGER NOT NULL,"
+          "updated BIGINT NOT NULL"
           ");");
     }
   }

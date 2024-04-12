@@ -41,13 +41,32 @@ abstract class AlarmInterface {
     await callback(HttpStatus.ok, {"updated": response, "deleted": deleted});
   }
 
-  static Future<void> setResponse(Person person, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
-    AlarmResponse? response = AlarmResponse.fromJson(data);
-    if (response == null) {
-      await callback(HttpStatus.badRequest, {"message": "Ungültige Daten"});
+  static Future<void> fetchSingle(Person person, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
+    int alarmId = data["alarmId"];
+    Alarm? alarm = await Alarm.getById(alarmId);
+    if (alarm == null) {
+      await callback(HttpStatus.notFound, {"message": "Alarmierung nicht gefunden"});
       return;
     }
+
+    if (!await alarm.canSee(person)) {
+      await callback(HttpStatus.forbidden, {"message": "Du bist nicht berechtigt, auf diese Alarmierung zuzugreifen."});
+      return;
+    }
+
+    await callback(HttpStatus.ok, alarm.toJson());
+  }
+
+  static Future<void> setResponse(Person person, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
     int alarmId = data["alarmId"];
+    AlarmResponseType responseType = AlarmResponseType.values[data["responseType"]];
+    int? stationId = data["stationId"];
+    String note = data["note"];
+
+    if (stationId == null && responseType != AlarmResponseType.notReady) {
+      await callback(HttpStatus.badRequest, {"message": "Du musst eine Station angeben, wenn du eine Antwort gibst."});
+      return;
+    }
 
     Alarm? alarm = await Alarm.getById(alarmId);
     if (alarm == null) {
@@ -65,44 +84,49 @@ abstract class AlarmInterface {
       return;
     }
 
-    if (response.type == AlarmResponseType.notReady) {
-      response.stationId = null;
-    }
+    var time = DateTime.now();
 
-    // if response exists already and type and stattion is same, dont set time
-    if (alarm.responses.containsKey(person.id) && alarm.responses[person.id]!.type == response.type && alarm.responses[person.id]!.stationId == response.stationId) {
-      response.time = alarm.responses[person.id]!.time;
-    } else {
-      response.time = DateTime.now();
-    }
+    note = note.trim();
+    note = note.substring(0, note.length > 200 ? 200 : note.length);
 
-    if (response.note != null) {
-      response.note = response.note!.trim();
-      response.note = response.note!.substring(0, response.note!.length > 200 ? 200 : response.note!.length);
-      if (response.note!.isEmpty) {
-        response.note = null;
-      }
-    }
+    Map<int, AlarmResponseType> responses = {};
 
     if (alarm.units.isNotEmpty) {
-      int? station = response.stationId;
-      if (station != null) {
-        var units = await Unit.getByStationId(station);
-        bool allowed = false;
-        for (var unit in units) {
-          if (!alarm.units.contains(unit.id)) continue;
-          if (!person.allowedUnits.contains(unit.id)) continue;
-          allowed = true;
+      Set<int> alarmUnitsForPerson = {};
+      for (var unit in alarm.units) {
+        if (person.allowedUnits.contains(unit)) {
+          alarmUnitsForPerson.add(unit);
         }
+      }
 
-        if (!allowed) {
-          await callback(HttpStatus.forbidden, {"message": "Du bist nicht berechtigt, auf diese Alarmierung zuzugreifen."});
-          return;
+      if (alarmUnitsForPerson.isEmpty) {
+        await callback(HttpStatus.forbidden, {"message": "Du bist nicht berechtigt, auf diese Alarmierung zuzugreifen."});
+        return;
+      }
+
+      var units = await Unit.getByIds(alarmUnitsForPerson);
+      var stations = await Station.getByIds(units.map((e) => e.stationId).toSet());
+      stations.removeWhere((element) => !element.persons.contains(person.id));
+
+      for (var station in stations) {
+        if (station.id == stationId) {
+          responses[stationId!] = responseType;
+        } else {
+          responses[station.id] = AlarmResponseType.notReady;
+        }
+      }
+    } else {
+      var stations = await Station.getForPerson(person.id);
+      for (var station in stations) {
+        if (station.id == stationId) {
+          responses[stationId!] = responseType;
+        } else {
+          responses[station.id] = AlarmResponseType.notReady;
         }
       }
     }
 
-    alarm.responses[person.id] = response;
+    alarm.responses[person.id] = AlarmResponse(note: note, time: time, responses: responses);
     await Alarm.update(alarm);
 
     await callback(HttpStatus.ok, alarm.toJson());

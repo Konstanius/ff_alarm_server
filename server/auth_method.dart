@@ -13,6 +13,7 @@ abstract class AuthMethod {
     "personSetResponse": PersonInterface.setResponse,
     "unitGetAll": UnitInterface.getAll,
     "alarmGetAll": AlarmInterface.getAll,
+    "alarmFetchSingle": AlarmInterface.fetchSingle,
     "alarmSetResponse": AlarmInterface.setResponse,
     "alarmGetDetails": AlarmInterface.getDetails,
     "test": sendTestAlarms,

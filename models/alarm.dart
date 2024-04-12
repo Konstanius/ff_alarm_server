@@ -62,7 +62,7 @@ class Alarm {
         Map<int, AlarmResponse> responses = {};
         json[jsonShorts["responses"]].forEach((key, value) {
           var alarmResponse = AlarmResponse.fromJson(value);
-          if (alarmResponse != null) responses[int.parse(key)] = alarmResponse;
+          responses[int.parse(key)] = alarmResponse;
         });
         return responses;
       }(),
@@ -88,6 +88,10 @@ class Alarm {
 
   String deflateToString() {
     Map<String, dynamic> json = toJson();
+    // empty notes, responses, updated to 0 - This is done to reduce the size of the string to fit within the 4KB limit of FCM
+    json["notes"] = [];
+    json["responses"] = {};
+    json["updated"] = 0;
     String jsonString = jsonEncode(json);
     final enCodedJson = utf8.encode(jsonString);
     final gZipJson = gzip.encode(enCodedJson);
@@ -108,7 +112,7 @@ class Alarm {
         Map<int, AlarmResponse> responses = {};
         data["responses"].forEach((key, value) {
           var alarmResponse = AlarmResponse.fromJson(value);
-          if (alarmResponse != null) responses[int.parse(key)] = alarmResponse;
+          responses[int.parse(key)] = alarmResponse;
         });
         return responses;
       }(),
@@ -141,15 +145,15 @@ class Alarm {
     if (result[0][0] == false) {
       await Database.connection.query("CREATE TABLE alarms ("
           "id SERIAL PRIMARY KEY,"
-          "type TEXT,"
-          "word TEXT,"
-          "date BIGINT,"
-          "number INTEGER,"
-          "address TEXT,"
-          "notes TEXT[],"
-          "units INTEGER[],"
-          "responses JSONB,"
-          "updated BIGINT"
+          "type TEXT NOT NULL,"
+          "word TEXT NOT NULL,"
+          "date BIGINT NOT NULL,"
+          "number INTEGER NOT NULL,"
+          "address TEXT NOT NULL,"
+          "notes TEXT[] NOT NULL,"
+          "units INTEGER[] NOT NULL,"
+          "responses JSONB NOT NULL,"
+          "updated BIGINT NOT NULL"
           ");");
     }
   }
@@ -249,30 +253,49 @@ class Alarm {
   }
 }
 
+/// Each responder gives a single response to each alarm
 class AlarmResponse {
-  String? note;
-  DateTime? time;
-  AlarmResponseType type;
-  int? stationId;
+  /// The note left to be visible for other responders of the station they are not "Not going" to
+  /// If the response is "Not going" to all stations, the note is visible to all responders
+  String note;
 
-  AlarmResponse({this.note, this.time, required this.type, this.stationId});
+  /// The time at which the response was given
+  DateTime time;
 
-  static AlarmResponse? fromJson(Map<String, dynamic>? json) {
-    if (json == null || !json.containsKey("d")) return null;
+  /// The type of response given, for each station
+  Map<int, AlarmResponseType> responses;
+
+  AlarmResponse({
+    required this.note,
+    required this.time,
+    required this.responses,
+  });
+
+  static const Map<String, String> jsonShorts = {
+    "note": "n",
+    "time": "t",
+    "responses": "r",
+  };
+
+  factory AlarmResponse.fromJson(Map<String, dynamic> json) {
     return AlarmResponse(
-      note: json['n'],
-      time: json['t'] != null ? DateTime.fromMillisecondsSinceEpoch(json['t']) : null,
-      type: AlarmResponseType.values[json['d']],
-      stationId: json['s'],
+      note: json[jsonShorts["note"]],
+      time: DateTime.fromMillisecondsSinceEpoch(json[jsonShorts["time"]]),
+      responses: () {
+        Map<int, AlarmResponseType> responses = {};
+        json[jsonShorts["responses"]].forEach((key, value) {
+          responses[int.parse(key)] = AlarmResponseType.values[value];
+        });
+        return responses;
+      }(),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'n': note,
-      't': time?.millisecondsSinceEpoch,
-      'd': type.index,
-      's': stationId,
+      jsonShorts["note"]!: note,
+      jsonShorts["time"]!: time.millisecondsSinceEpoch,
+      jsonShorts["responses"]!: responses.map((key, value) => MapEntry(key.toString(), value.index)),
     };
   }
 }
