@@ -32,7 +32,7 @@ class Alarm {
     required this.address,
     required this.notes,
     required this.units,
-    this.responses = const {},
+    required this.responses,
     required this.updated,
   });
 

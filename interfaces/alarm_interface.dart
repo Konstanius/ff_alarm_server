@@ -257,6 +257,7 @@ abstract class AlarmInterface {
       notes: [],
       units: units.cast<int>(),
       updated: DateTime.now(),
+      responses: {},
     );
     await Alarm.insert(alarm);
 

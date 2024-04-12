@@ -45,6 +45,7 @@ abstract class FCMMethods {
       notes: ["Diese Alarmierung ist ein Test.", "Es besteht kein Handlungsbedarf."],
       units: [],
       updated: now,
+      responses: {},
     );
     await Alarm.insert(alarm);
 
