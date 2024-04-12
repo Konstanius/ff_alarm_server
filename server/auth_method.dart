@@ -16,6 +16,7 @@ abstract class AuthMethod {
     "alarmGet": AlarmInterface.fetchSingle,
     "alarmSetResponse": AlarmInterface.setResponse,
     "alarmGetDetails": AlarmInterface.getDetails,
+    "alarmSendExample": AlarmInterface.sendExample,
     "test": sendTestAlarms,
   };
 

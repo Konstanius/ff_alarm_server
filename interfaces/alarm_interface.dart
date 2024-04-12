@@ -239,4 +239,29 @@ abstract class AlarmInterface {
 
     await callback(HttpStatus.ok, response);
   }
+
+  static Future<void> sendExample(Person person, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
+    String type = data["type"];
+    String word = data["word"];
+    int number = data["number"];
+    String address = data["address"];
+    List<dynamic> units = data["units"];
+
+    Alarm alarm = Alarm(
+      id: 0,
+      type: type,
+      word: word,
+      date: DateTime.now(),
+      number: number,
+      address: address,
+      notes: [],
+      units: units.cast<int>(),
+      updated: DateTime.now(),
+    );
+    await Alarm.insert(alarm);
+
+    await alarm.sendFCMInformation();
+
+    await callback(HttpStatus.ok, {"message": "Alarmierung erfolgreich erstellt"});
+  }
 }
