@@ -3,10 +3,12 @@ import 'dart:io';
 
 import 'package:postgres/src/execution_context.dart';
 
+import '../firebase/fcm_service.dart';
 import '../server/init.dart';
 import '../utils/config.dart';
 import '../utils/database.dart';
 import 'person.dart';
+import 'station.dart';
 import 'unit.dart';
 
 class Alarm {
@@ -250,6 +252,53 @@ class Alarm {
     for (var connection in realtimeConnections) {
       connection.send("alarm_delete", {"id": alarmId});
     }
+  }
+
+  Future<void> sendFCMInformation() async {
+    var involvedPersonIds = await getInvolvedPersonIds();
+    var persons = await Person.getByIds(involvedPersonIds.toList());
+
+    var units = await getUnits();
+    Map<int, Unit> unitMap = {};
+    for (var unit in units) {
+      unitMap[unit.id] = unit;
+    }
+
+    var stations = await Station.getByIds(units.map((e) => e.stationId).toSet());
+    Map<int, Station> stationMap = {};
+    for (var station in stations) {
+      stationMap[station.id] = station;
+    }
+
+    for (var person in persons) {
+      responses[person.id] = person.getForAlarm(this, unitMap, stationMap);
+    }
+
+    await update(this);
+
+    Set<String> androidTokens = {};
+    Set<String> iosTokens = {};
+    for (var person in persons) {
+      for (String token in person.fcmTokens) {
+        if (token.startsWith("A")) {
+          androidTokens.add(token.substring(1));
+        } else if (token.startsWith("I")) {
+          iosTokens.add(token.substring(1));
+        } else {
+          // Should not happen, optionally for alternative platforms / future use
+        }
+      }
+    }
+
+    String deflated = deflateToString();
+
+    await invokeSDK(
+      false,
+      "alarm",
+      {"alarm": deflated},
+      androidTokens: androidTokens,
+      iosTokens: iosTokens,
+    );
   }
 }
 

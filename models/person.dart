@@ -1,6 +1,7 @@
 import '../server/init.dart';
 import '../utils/config.dart';
 import '../utils/database.dart';
+import 'alarm.dart';
 import 'station.dart';
 import 'unit.dart';
 
@@ -185,6 +186,33 @@ class Person {
     for (var connection in realtimeConnections) {
       connection.send("person_delete", {"id": personId});
     }
+  }
+
+  AlarmResponse getForAlarm(Alarm alarm, Map<int, Unit> relevantUnits, Map<int, Station> relevantStations) {
+    List<Station> stationsOfPerson = [];
+
+    for (var unit in allowedUnits) {
+      if (!relevantUnits.containsKey(unit)) continue;
+      if (!relevantStations.containsKey(relevantUnits[unit]!.stationId)) continue;
+      var station = relevantStations[relevantUnits[unit]!.stationId]!;
+      if (!station.persons.contains(id)) continue;
+      stationsOfPerson.add(station);
+    }
+
+    Map<int, AlarmResponseType> responses = {};
+    for (var station in stationsOfPerson) {
+      if (!response.containsKey(station.id)) continue;
+      var responseType = response[station.id]!;
+      if (!responseType.shouldNotify()) {
+        responses[station.id] = AlarmResponseType.notReady;
+      }
+    }
+
+    return AlarmResponse(
+      note: "",
+      time: DateTime.now(),
+      responses: responses,
+    );
   }
 }
 
