@@ -24,6 +24,9 @@ docker create --hostname ff_alarm_server --name ff_alarm_server --network ff_ala
 docker cp resources/main.exe ff_alarm_server:/ff/resources/main.exe
 docker start ff_alarm_server
 
+echo "Pruning unused docker images"
+docker image prune -f
+
 echo "Setting permissions for resources folder"
 sudo chmod -R 777 resources/
 
