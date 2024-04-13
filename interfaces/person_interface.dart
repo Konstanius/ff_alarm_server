@@ -14,7 +14,10 @@ abstract class PersonInterface {
       updates[int.parse(splitDate[0])] = DateTime.fromMillisecondsSinceEpoch(int.parse(splitDate[1]));
     }
 
-    List<Person> persons = await Person.getAll();
+    var userStations = await Station.getForPerson(person.id);
+    Set<int> stationPersons = userStations.map((e) => e.id).toSet();
+
+    List<Person> persons = await Person.getByIds(stationPersons.toList());
     List<Map<String, dynamic>> response = [];
     Set<int> canSee = {};
 

@@ -259,6 +259,19 @@ abstract class AlarmInterface {
     String address = data["address"];
     List<dynamic> units = data["units"];
 
+    var personStations = await Station.getForPerson(person.id);
+    bool admin = false;
+    for (var station in personStations) {
+      if (station.adminPersons.contains(person.id)) {
+        admin = true;
+        break;
+      }
+    }
+    if (!admin) {
+      await callback(HttpStatus.forbidden, {"message": "Du bist nicht berechtigt, Alarmierungen zu erstellen."});
+      return;
+    }
+
     Alarm alarm = Alarm(
       id: 0,
       type: type,
