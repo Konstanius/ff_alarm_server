@@ -1,6 +1,8 @@
+import '../interfaces/person_interface.dart';
 import '../server/init.dart';
 import '../utils/config.dart';
 import '../utils/database.dart';
+import '../utils/generic.dart';
 import 'alarm.dart';
 import 'station.dart';
 import 'unit.dart';
@@ -206,7 +208,7 @@ class Person {
         continue;
       }
       var responseType = response[station.id]!;
-      if (!responseType.shouldNotify()) {
+      if (!responseType.shouldNotify(id)) {
         responses[station.id] = AlarmResponseType.notReady;
       } else {
         responses[station.id] = AlarmResponseType.notSet;
@@ -288,7 +290,7 @@ class PersonStaticAlarmResponse {
     );
   }
 
-  bool shouldNotify() {
+  bool shouldNotify(int personId) {
     // manualOverride = 0 means everything is disabled
     if (manualOverride == 0) return false;
     // manualOverride = 2 means everything is enabled
@@ -321,6 +323,24 @@ class PersonStaticAlarmResponse {
 
         return true;
       }
+    }
+
+    if (enabledMode == 3) {
+      if (geofencing.isEmpty) return false;
+      var position = PersonInterface.globalLocations[personId];
+      if (position == null) return true;
+
+      var now = DateTime.now().millisecondsSinceEpoch;
+      if (now - position.time > PersonInterface.locationTimeout) return true;
+
+      for (var item in geofencing) {
+        try {
+          double distance = Utils.distanceBetween(item.latitude, item.longitude, position.lat, position.lon);
+          if (distance < item.radius) return true;
+        } catch (_) {}
+      }
+
+      return false;
     }
 
     return true;
