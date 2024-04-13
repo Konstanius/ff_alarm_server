@@ -15,11 +15,14 @@ abstract class PersonInterface {
     }
 
     var userStations = await Station.getForPerson(person.id);
-    Set<int> stationPersons = userStations.map((e) => e.id).toSet();
+    Set<int> stationPersons = {};
+    for (var station in userStations) {
+      stationPersons.addAll(station.persons);
+    }
 
     List<Person> persons = await Person.getByIds(stationPersons.toList());
     List<Map<String, dynamic>> response = [];
-    Set<int> canSee = {};
+    Set<int> canSee = {person.id};
 
     for (Person person in persons) {
       canSee.add(person.id);

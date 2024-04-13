@@ -48,6 +48,7 @@ abstract class GuestInterface {
     await Session.insert(session);
 
     person.registrationKey = "";
+    person.response = {};
     await Person.update(person);
 
     await callback(HttpStatus.ok, {
