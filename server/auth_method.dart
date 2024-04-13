@@ -11,6 +11,7 @@ abstract class AuthMethod {
     "stationGetAll": StationInterface.getAll,
     "personGetAll": PersonInterface.getAll,
     "personSetResponse": PersonInterface.setResponse,
+    "personSetLocation": PersonInterface.setLocation,
     "unitGetAll": UnitInterface.getAll,
     "alarmGetAll": AlarmInterface.getAll,
     "alarmGet": AlarmInterface.fetchSingle,

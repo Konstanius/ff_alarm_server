@@ -2,6 +2,7 @@ import 'dart:io';
 
 import '../models/person.dart';
 import '../models/station.dart';
+import '../utils/console.dart';
 
 abstract class PersonInterface {
   static Future<void> getAll(Person person, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
@@ -54,5 +55,17 @@ abstract class PersonInterface {
     await Person.update(personCopy);
 
     await callback(HttpStatus.ok, {});
+  }
+
+  static Future<void> setLocation(Person person, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
+    double lat = data["a"];
+    double lon = data["o"];
+    int time = data["t"];
+
+    DateTime dateTime = DateTime.fromMillisecondsSinceEpoch(time);
+
+    outln("Setting location for ${person.id} to $lat, $lon at $dateTime", Color.info);
+
+    callback(HttpStatus.ok, {});
   }
 }
