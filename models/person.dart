@@ -395,7 +395,7 @@ class PersonStaticAlarmResponse {
       try {
         List<String> split = item.split(";");
         int day = int.parse(split[0]);
-        if (day < 0 || day > 6) continue;
+        if (day < 1 || day > 7) continue;
         shiftPlanList.add((
           day: int.parse(split[0]),
           start: int.parse(split[1]),
