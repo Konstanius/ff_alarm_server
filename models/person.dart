@@ -11,6 +11,7 @@ class Person {
   int id;
   String firstName;
   String lastName;
+  DateTime birthday;
   List<int> allowedUnits;
   List<Qualification> qualifications;
   List<String> fcmTokens;
@@ -22,6 +23,7 @@ class Person {
     required this.id,
     required this.firstName,
     required this.lastName,
+    required this.birthday,
     required this.allowedUnits,
     required this.qualifications,
     required this.fcmTokens,
@@ -35,6 +37,7 @@ class Person {
     "id": "i",
     "firstName": "f",
     "lastName": "l",
+    "birthday": "b",
     "allowedUnits": "au",
     "qualifications": "q",
     "updated": "up",
@@ -46,6 +49,7 @@ class Person {
       jsonShorts["id"]!: id,
       jsonShorts["firstName"]!: firstName,
       jsonShorts["lastName"]!: lastName,
+      jsonShorts["birthday"]!: birthday.millisecondsSinceEpoch,
       jsonShorts["allowedUnits"]!: allowedUnits,
       jsonShorts["qualifications"]!: qualifications.map((e) => e.toString()).toList(),
       jsonShorts["updated"]!: updated.millisecondsSinceEpoch,
@@ -57,6 +61,7 @@ class Person {
       id: data["id"],
       firstName: data["firstname"],
       lastName: data["lastname"],
+      birthday: DateTime.fromMillisecondsSinceEpoch(data["birthday"]),
       allowedUnits: data["allowedunits"],
       qualifications: () {
         List<Qualification> qualifications = [];
@@ -80,6 +85,7 @@ class Person {
       "id": id,
       "firstname": firstName,
       "lastname": lastName,
+      "birthday": birthday.millisecondsSinceEpoch,
       "allowedunits": allowedUnits,
       "qualifications": qualifications.map((e) => e.toString()).join(","),
       "fcmtokens": fcmTokens,
@@ -101,6 +107,7 @@ class Person {
           "id SERIAL PRIMARY KEY,"
           "firstname TEXT NOT NULL,"
           "lastname TEXT NOT NULL,"
+          "birthday BIGINT NOT NULL,"
           "allowedunits INTEGER[] NOT NULL,"
           "qualifications TEXT NOT NULL,"
           "fcmtokens TEXT[] NOT NULL,"
@@ -130,7 +137,7 @@ class Person {
   static Future<void> insert(Person person) async {
     person.updated = DateTime.now();
     var result = await Database.connection.query(
-      "INSERT INTO persons (firstname, lastname, allowedunits, qualifications, fcmtokens, registrationkey, response, updated) @firstname, @lastname, @allowedunits, @qualifications, @fcmtokens, @registrationkey, @response, @updated RETURNING id;",
+      "INSERT INTO persons (firstname, lastname, birthday, allowedunits, qualifications, fcmtokens, registrationkey, response, updated) @firstname, @lastname, @birthday, @allowedunits, @qualifications, @fcmtokens, @registrationkey, @response, @updated RETURNING id;",
       substitutionValues: person.toDatabase(),
     );
     person.id = result[0][0];
@@ -140,7 +147,7 @@ class Person {
   static Future<void> update(Person person) async {
     person.updated = DateTime.now();
     await Database.connection.query(
-      "UPDATE persons SET firstname = @firstname, lastname = @lastname, allowedunits = @allowedunits, qualifications = @qualifications, fcmtokens = @fcmtokens, registrationkey = @registrationkey, response = @response, updated = @updated WHERE id = @id;",
+      "UPDATE persons SET firstname = @firstname, lastname = @lastname, birthday = @birthday, allowedunits = @allowedunits, qualifications = @qualifications, fcmtokens = @fcmtokens, registrationkey = @registrationkey, response = @response, updated = @updated WHERE id = @id;",
       substitutionValues: person.toDatabase(),
     );
     Person.broadcastChange(person);

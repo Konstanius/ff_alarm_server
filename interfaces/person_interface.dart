@@ -1,8 +1,12 @@
+import 'dart:convert';
 import 'dart:io';
 
 import '../models/person.dart';
 import '../models/station.dart';
+import '../models/unit.dart';
+import '../utils/config.dart';
 import '../utils/console.dart';
+import '../utils/generic.dart';
 
 abstract class PersonInterface {
   static Future<void> getAll(Person person, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
@@ -79,5 +83,88 @@ abstract class PersonInterface {
     globalLocations[person.id] = (lat: lat, lon: lon, time: time);
 
     callback(HttpStatus.ok, {});
+  }
+
+  static Future<void> create(Person person, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
+    int stationId = data["stationId"];
+
+    Station? station = await Station.getById(stationId);
+    if (station == null) {
+      await callback(HttpStatus.forbidden, {"message": "Du bist nicht berechtigt, auf diese Wache zuzugreifen."});
+      return;
+    }
+
+    if (!station.adminPersons.contains(person.id)) {
+      await callback(HttpStatus.forbidden, {"message": "Du bist nicht berechtigt, auf diese Wache zuzugreifen."});
+      return;
+    }
+
+    String firstName = data["firstName"].trim();
+    String lastName = data["lastName"].trim();
+    DateTime birthday = DateTime.fromMillisecondsSinceEpoch(data["birthday"]);
+    List<dynamic> allowedUnits = data["allowedUnits"];
+    List<dynamic> qualifications = data["qualifications"];
+
+    if (firstName.isEmpty || lastName.isEmpty) {
+      await callback(HttpStatus.badRequest, {"message": "Vor- und Nachname dürfen nicht leer sein."});
+      return;
+    }
+
+    if (birthday.isAfter(DateTime.now())) {
+      await callback(HttpStatus.badRequest, {"message": "Geburtstag darf nicht in der Zukunft liegen."});
+      return;
+    }
+
+    List<Qualification> qs = [];
+    Set<String> qSet = {};
+    for (String q in qualifications) {
+      if (qSet.contains(q)) continue;
+      qs.add(Qualification.fromString(q));
+      qSet.add(q);
+    }
+
+    var stationUnits = await Unit.getByStationId(stationId);
+    Set<int> stationUnitIds = {};
+    for (var unit in stationUnits) {
+      if (!allowedUnits.contains(unit.id)) continue;
+      stationUnitIds.add(unit.id);
+    }
+
+    String key = HashUtils.generateRandomKey();
+    String hash = await HashUtils.generateHash(key);
+
+    DateTime now = DateTime.now();
+    DateTime expires = now.add(const Duration(days: 1));
+
+    Person newPerson = Person(
+      id: 0,
+      firstName: firstName,
+      lastName: lastName,
+      birthday: birthday,
+      allowedUnits: stationUnitIds.toList(),
+      qualifications: qs,
+      fcmTokens: [],
+      registrationKey: '$hash:${expires.millisecondsSinceEpoch}',
+      response: {},
+      updated: DateTime.now(),
+    );
+
+    await Person.insert(newPerson);
+
+    station.persons.add(newPerson.id);
+    await Station.update(station);
+
+    Map<String, dynamic> keyData = {
+      "d": Config.config["server"],
+      "a": key,
+      "p": person.id,
+    };
+
+    String jsonString = jsonEncode(keyData);
+    final enCodedJson = utf8.encode(jsonString);
+    final gZipJson = gzip.encode(enCodedJson);
+    String base64String = base64.encode(gZipJson);
+
+    await callback(HttpStatus.ok, {"key": base64String, "id": newPerson.id});
   }
 }

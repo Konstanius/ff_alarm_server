@@ -127,10 +127,10 @@ class Station {
     }
   }
 
-  static Future<Station> getById(int id) async {
+  static Future<Station?> getById(int id) async {
     var result = await Database.connection.query("SELECT * FROM stations WHERE id = @id;", substitutionValues: {"id": id});
     if (result.isEmpty) {
-      throw RequestException(HttpStatus.notFound, "Die Station konnte nicht gefunden werden.");
+      return null;
     }
     return Station.fromDatabase(result[0].toColumnMap());
   }

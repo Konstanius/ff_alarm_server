@@ -12,6 +12,7 @@ abstract class AuthMethod {
     "personGetAll": PersonInterface.getAll,
     "personSetResponse": PersonInterface.setResponse,
     "personSetLocation": PersonInterface.setLocation,
+    "personCreate": PersonInterface.create,
     "unitGetAll": UnitInterface.getAll,
     "alarmGetAll": AlarmInterface.getAll,
     "alarmGet": AlarmInterface.fetchSingle,

@@ -121,10 +121,10 @@ class Unit {
     }
   }
 
-  static Future<Unit> getById(int id) async {
+  static Future<Unit?> getById(int id) async {
     var result = await Database.connection.query("SELECT * FROM units WHERE id = @id;", substitutionValues: {"id": id});
     if (result.isEmpty) {
-      throw RequestException(HttpStatus.notFound, "Die Einheit konnte nicht gefunden werden.");
+      return null;
     }
     return Unit.fromDatabase(result[0].toColumnMap());
   }
