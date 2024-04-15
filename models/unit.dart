@@ -140,7 +140,7 @@ class Unit {
   }
 
   static Future<List<Unit>> getByStationId(int stationId) async {
-    var result = await Database.connection.query("SELECT * FROM units WHERE stationid = @stationid;", substitutionValues: {"stationId": stationId});
+    var result = await Database.connection.query("SELECT * FROM units WHERE stationid = @stationid;", substitutionValues: {"stationid": stationId});
     return result.map((e) => Unit.fromDatabase(e.toColumnMap())).toList();
   }
 
