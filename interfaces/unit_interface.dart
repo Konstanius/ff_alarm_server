@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import '../models/person.dart';
+import '../models/station.dart';
 import '../models/unit.dart';
 
 abstract class UnitInterface {
@@ -37,5 +38,24 @@ abstract class UnitInterface {
     }
 
     await callback(HttpStatus.ok, {"updated": response, "deleted": deleted});
+  }
+
+  static Future<void> getForStationAsAdmin(Person person, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
+    int stationId = data["stationId"];
+
+    Station? station = await Station.getById(stationId);
+    if (station == null) {
+      await callback(HttpStatus.forbidden, {"message": "Du bist nicht berechtigt, auf diese Wache zuzugreifen."});
+      return;
+    }
+
+    if (!station.adminPersons.contains(person.id)) {
+      await callback(HttpStatus.forbidden, {"message": "Du bist nicht berechtigt, auf diese Wache zuzugreifen."});
+      return;
+    }
+
+    List<Unit> units = await Unit.getByStationId(stationId);
+
+    await callback(HttpStatus.ok, {"units": units.map((e) => e.toJson()).toList()});
   }
 }
