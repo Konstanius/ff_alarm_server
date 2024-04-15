@@ -2,6 +2,7 @@ import 'dart:io';
 
 import '../models/person.dart';
 import '../models/station.dart';
+import '../utils/console.dart';
 
 abstract class PersonInterface {
   static Future<void> getAll(Person person, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
@@ -60,12 +61,14 @@ abstract class PersonInterface {
   }
 
   static Map<int, ({double lat, double lon, int time})> globalLocations = {};
-  static const int locationTimeout = 600000;
+  static const int locationTimeout = 1200000;
 
   static Future<void> setLocation(Person person, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
     double lat = data["a"];
     double lon = data["o"];
     int time = data["t"];
+
+    outln("Setting location for ${person.id} to $lat, $lon at $time", Color.verbose);
 
     var last = globalLocations[person.id];
     if (last != null && last.time > time) {

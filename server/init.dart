@@ -94,13 +94,13 @@ Future<void> initServer() async {
           String boundRequest = await utf8.decoder.bind(request).join();
           data = json.decode(boundRequest);
         } catch (e) {
-          await callback(HttpStatus.badRequest, {"message": "Die Anfrage konnte nicht verarbeitet werden 1"});
+          await callback(HttpStatus.badRequest, {"message": "Die Anfrage konnte nicht verarbeitet werden"});
           return;
         }
 
         var method = AuthMethod.guestMethods[keyword];
         if (method == null) {
-          await callback(HttpStatus.notFound, {"message": "Die angeforderte Resource wurde nicht gefunden 2"});
+          await callback(HttpStatus.notFound, {"message": "Die angeforderte Resource wurde nicht gefunden"});
           return;
         }
 
@@ -168,7 +168,7 @@ Future<void> initServer() async {
 
       var method = AuthMethod.authMethods[keyword];
       if (method == null) {
-        await callback(HttpStatus.notFound, {"message": "Die angeforderte Resource wurde nicht gefunden 3"});
+        await callback(HttpStatus.notFound, {"message": "Die angeforderte Resource wurde nicht gefunden"});
         return;
       }
 
