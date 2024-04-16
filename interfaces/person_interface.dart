@@ -57,6 +57,19 @@ abstract class PersonInterface {
     Set<int> allStationIds = allStations.map((e) => e.id).toSet();
     responses.removeWhere((key, value) => !allStationIds.contains(key));
 
+    // limit calendar, schedule and geofences to 100 entries
+    for (var entry in responses.entries) {
+      if (entry.value.calendar.length > 100) {
+        entry.value.calendar = entry.value.calendar.sublist(0, 100);
+      }
+      if (entry.value.shiftPlan.length > 100) {
+        entry.value.shiftPlan = entry.value.shiftPlan.sublist(0, 100);
+      }
+      if (entry.value.geofencing.length > 100) {
+        entry.value.geofencing = entry.value.geofencing.sublist(0, 100);
+      }
+    }
+
     var personCopy = await Person.getById(person.id);
     personCopy!.response = responses;
     await Person.update(personCopy);
@@ -110,6 +123,12 @@ abstract class PersonInterface {
       return;
     }
 
+    // limit to 100 chars each
+    if (firstName.length > 100 || lastName.length > 100) {
+      await callback(HttpStatus.badRequest, {"message": "Vor- und Nachname dürfen nicht länger als je 100 Zeichen sein."});
+      return;
+    }
+
     if (birthday.isAfter(DateTime.now())) {
       await callback(HttpStatus.badRequest, {"message": "Geburtstag darf nicht in der Zukunft liegen."});
       return;
@@ -118,9 +137,13 @@ abstract class PersonInterface {
     List<Qualification> qs = [];
     Set<String> qSet = {};
     for (String q in qualifications) {
-      if (qSet.contains(q)) continue;
+      String withoutLeadingUnderscore = q.startsWith("_") ? q.substring(1) : q;
+      if (qSet.contains(withoutLeadingUnderscore)) {
+        await callback(HttpStatus.badRequest, {"message": "Qualifikationen dürfen nicht doppelt vorkommen."});
+        return;
+      }
       qs.add(Qualification.fromString(q));
-      qSet.add(q);
+      qSet.add(withoutLeadingUnderscore);
     }
 
     var stationUnits = await Unit.getByStationId(stationId);
