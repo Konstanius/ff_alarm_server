@@ -139,9 +139,12 @@ class Person {
   
   static HashMap<int, Person> get directCacheAccess => _personsCache;
 
-  static Future<List<Person>> populateCache() async {
+  static Future<void> populateCache() async {
     var result = await Database.connection.query("SELECT * FROM persons;");
-    return result.map((e) => Person.fromDatabase(e.toColumnMap())).toList();
+    for (var row in result) {
+      Person person = Person.fromDatabase(row.toColumnMap());
+      _personsCache[person.id] = person;
+    }
   }
 
   static Person? getById(int id) {

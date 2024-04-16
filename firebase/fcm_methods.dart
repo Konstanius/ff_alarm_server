@@ -8,8 +8,7 @@ abstract class FCMMethods {
     Set<String> iosTokens = {};
 
     if (fcms == null) {
-      List<Person> persons = await Person.populateCache();
-      for (Person person in persons) {
+      for (Person person in Person.directCacheAccess.values) {
         for (String token in person.fcmTokens) {
           if (token.startsWith("A")) {
             androidTokens.add(token.substring(1));
