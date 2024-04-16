@@ -3,12 +3,12 @@ import '../models/person.dart';
 import 'fcm_service.dart';
 
 abstract class FCMMethods {
-  static Future<void> sendTestAlarm({List<String>? fcms}) async {
+  static Future<void> sendTestAlarm({Iterable<String>? fcms}) async {
     Set<String> androidTokens = {};
     Set<String> iosTokens = {};
 
     if (fcms == null) {
-      List<Person> persons = await Person.getAll();
+      List<Person> persons = await Person.populateCache();
       for (Person person in persons) {
         for (String token in person.fcmTokens) {
           if (token.startsWith("A")) {

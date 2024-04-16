@@ -38,6 +38,9 @@ Future<void> initServer() async {
   DateTime now = DateTime.now();
   logFile!.writeAsStringSync('${DateFormat("yyyy-MM-dd_HH-mm-ss").format(now)}\n', mode: FileMode.append);
 
+  // Populate the persons cache
+  await Person.populateCache();
+
   HttpServer server = await HttpServer.bind('0.0.0.0', 3000);
   server.listen((HttpRequest request) async {
     try {

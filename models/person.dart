@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import '../interfaces/person_interface.dart';
 import '../server/init.dart';
 import '../utils/config.dart';
@@ -14,7 +16,7 @@ class Person {
   DateTime birthday;
   List<int> allowedUnits;
   List<Qualification> qualifications;
-  List<String> fcmTokens;
+  Set<String> fcmTokens;
   String registrationKey;
   Map<int, PersonStaticAlarmResponse> response;
   DateTime updated;
@@ -31,6 +33,21 @@ class Person {
     required this.response,
     required this.updated,
   });
+
+  factory Person.copyFrom(Person person) {
+    return Person(
+      id: person.id,
+      firstName: person.firstName,
+      lastName: person.lastName,
+      birthday: person.birthday,
+      allowedUnits: [...person.allowedUnits],
+      qualifications: [...person.qualifications.map((e) => Qualification.copyFrom(e))],
+      fcmTokens: {...person.fcmTokens},
+      registrationKey: person.registrationKey,
+      response: {...person.response.map((key, value) => MapEntry(key, PersonStaticAlarmResponse.copyFrom(value)))},
+      updated: person.updated,
+    );
+  }
 
   static const Map<String, String> jsonShorts = {
     "server": "s",
@@ -73,7 +90,7 @@ class Person {
         }
         return qualifications;
       }(),
-      fcmTokens: data["fcmtokens"],
+      fcmTokens: {...data["fcmtokens"]},
       registrationKey: data["registrationkey"],
       response: PersonStaticAlarmResponse.fromJsonMap(data["response"]),
       updated: DateTime.fromMillisecondsSinceEpoch(data["updated"]),
@@ -88,7 +105,7 @@ class Person {
       "birthday": birthday.millisecondsSinceEpoch,
       "allowedunits": allowedUnits,
       "qualifications": qualifications.map((e) => e.toString()).join(","),
-      "fcmtokens": fcmTokens,
+      "fcmtokens": fcmTokens.toList(),
       "registrationkey": registrationKey,
       "response": PersonStaticAlarmResponse.toJsonMap(response),
       "updated": updated.millisecondsSinceEpoch,
@@ -118,20 +135,32 @@ class Person {
     }
   }
 
-  static Future<Person?> getById(int id) async {
-    var result = await Database.connection.query("SELECT * FROM persons WHERE id = $id;");
-    if (result.isEmpty) return null;
-    return Person.fromDatabase(result[0].toColumnMap());
-  }
+  static final HashMap<int, Person> _personsCache = HashMap<int, Person>();
+  
+  static HashMap<int, Person> get directCacheAccess => _personsCache;
 
-  static Future<List<Person>> getByIds(List<int> ids) async {
-    var result = await Database.connection.query("SELECT * FROM persons WHERE id = ANY(@ids);", substitutionValues: {"ids": ids});
-    return result.map((e) => Person.fromDatabase(e.toColumnMap())).toList();
-  }
-
-  static Future<List<Person>> getAll() async {
+  static Future<List<Person>> populateCache() async {
     var result = await Database.connection.query("SELECT * FROM persons;");
     return result.map((e) => Person.fromDatabase(e.toColumnMap())).toList();
+  }
+
+  static Person? getById(int id) {
+    Person? person = _personsCache[id];
+    if (person == null) return null;
+    return Person.copyFrom(person);
+  }
+
+  static List<Person> getByIds(List<int> ids) {
+    List<Person> persons = [];
+    for (var id in ids) {
+      Person? person = getById(id);
+      if (person != null) persons.add(person);
+    }
+    return persons;
+  }
+
+  static List<Person> getAll() {
+    return _personsCache.values.map((e) => Person.copyFrom(e)).toList();
   }
 
   static Future<void> insert(Person person) async {
@@ -141,6 +170,7 @@ class Person {
       substitutionValues: person.toDatabase(),
     );
     person.id = result[0][0];
+    _personsCache[person.id] = Person.copyFrom(person);
     Person.broadcastChange(person);
   }
 
@@ -150,26 +180,30 @@ class Person {
       "UPDATE persons SET firstname = @firstname, lastname = @lastname, birthday = @birthday, allowedunits = @allowedunits, qualifications = @qualifications, fcmtokens = @fcmtokens, registrationkey = @registrationkey, response = @response, updated = @updated WHERE id = @id;",
       substitutionValues: person.toDatabase(),
     );
+    _personsCache[person.id] = Person.copyFrom(person);
     Person.broadcastChange(person);
   }
 
   static Future<void> delete(int id) async {
     await Database.connection.query("DELETE FROM persons WHERE id = $id;");
+    _personsCache.remove(id);
     Person.broadcastDelete(id);
   }
 
-  static Future<List<Person>> getByUnitId(int unitId) async {
-    var result = await Database.connection.query("SELECT * FROM persons WHERE $unitId = ANY(allowedunits);");
-    return result.map((e) => Person.fromDatabase(e.toColumnMap())).toList();
+  static List<Person> getByUnitId(int unitId) {
+    List<Person> persons = [];
+    for (var person in _personsCache.values) {
+      if (person.allowedUnits.contains(unitId)) {
+        persons.add(Person.copyFrom(person));
+      }
+    }
+    return persons;
   }
 
   static Future<List<Person>> getByStationId(int stationId) async {
-    List<Unit> units = await Unit.getByStationId(stationId);
-    List<Person> persons = [];
-    for (var unit in units) {
-      persons.addAll(await getByUnitId(unit.id));
-    }
-    return persons;
+    Station? station = await Station.getById(stationId);
+    if (station == null) return [];
+    return getByIds(station.persons);
   }
 
   static Future<Set<int>> personsThatCanSee(int personId) async {
@@ -237,6 +271,10 @@ class Qualification {
 
   Qualification(this.type, this.start, this.end);
 
+  factory Qualification.copyFrom(Qualification qualification) {
+    return Qualification(qualification.type, qualification.start, qualification.end);
+  }
+
   factory Qualification.fromString(String str) {
     var parts = str.split(':');
     String type = parts[0];
@@ -278,6 +316,17 @@ class PersonStaticAlarmResponse {
     required this.shiftPlan,
     required this.geofencing,
   });
+
+  factory PersonStaticAlarmResponse.copyFrom(PersonStaticAlarmResponse response) {
+    return PersonStaticAlarmResponse(
+      stationId: response.stationId,
+      manualOverride: response.manualOverride,
+      calendar: [...response.calendar.map((e) => (start: e.start, end: e.end))],
+      enabledMode: response.enabledMode,
+      shiftPlan: [...response.shiftPlan.map((e) => (day: e.day, start: e.start, end: e.end))],
+      geofencing: [...response.geofencing.map((e) => (latitude: e.latitude, longitude: e.longitude, radius: e.radius))],
+    );
+  }
 
   factory PersonStaticAlarmResponse.make({
     required int stationId,
@@ -376,6 +425,7 @@ class PersonStaticAlarmResponse {
 
   factory PersonStaticAlarmResponse.fromJson(int stationId, Map<String, dynamic> json) {
     int manualOverride = json[jsonShorts["manualOverride"]] ?? 1;
+    if (manualOverride < 0 || manualOverride > 2) manualOverride = 1;
 
     List<dynamic> calendar = json[jsonShorts["calendar"]] ?? [];
     List<({DateTime start, DateTime end})> calendarList = [];
@@ -395,6 +445,7 @@ class PersonStaticAlarmResponse {
     }
 
     int enabledMode = json[jsonShorts["enabledMode"]] ?? 0;
+    if (enabledMode < 0 || enabledMode > 3) enabledMode = 0;
 
     List<dynamic> shiftPlan = json[jsonShorts["shiftPlan"]] ?? [];
     List<({int day, int start, int end})> shiftPlanList = [];
@@ -403,10 +454,16 @@ class PersonStaticAlarmResponse {
         List<String> split = item.split(";");
         int day = int.parse(split[0]);
         if (day < 1 || day > 7) continue;
+
+        int start = int.parse(split[1]);
+        if (start < 0 || start > 86400000) continue;
+        int end = int.parse(split[2]);
+        if (end < 0 || end > 86400000) continue;
+        if (end < start) continue;
         shiftPlanList.add((
-          day: int.parse(split[0]),
-          start: int.parse(split[1]),
-          end: int.parse(split[2]),
+          day: day,
+          start: start,
+          end: end,
         ));
       } catch (_) {}
     }

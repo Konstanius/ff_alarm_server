@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import '../models/person.dart';
 import '../utils/console.dart';
 import '../utils/database.dart';
 
@@ -38,15 +39,36 @@ Future<void> startFCMService() async {
           outln("[JAVA] Removing token $token", Color.warn);
 
           // Remove the token from all persons in a single pgsql query
-          await Database.connection.query(
-            "UPDATE persons SET fcmtokens = array_remove(fcmtokens, @tokenA) WHERE @tokenA = ANY(fcmtokens);",
-            substitutionValues: {"tokenA": tokenA},
-          );
+          Set<int> personsA = {};
+          Set<int> personsI = {};
+          for (var person in Person.directCacheAccess.values) {
+            if (person.fcmTokens.contains(tokenA)) {
+              personsA.add(person.id);
+              person.fcmTokens.remove(tokenA);
+            }
 
-          await Database.connection.query(
-            "UPDATE persons SET fcmtokens = array_remove(fcmtokens, @tokenI) WHERE @tokenI = ANY(fcmtokens);",
-            substitutionValues: {"tokenI": tokenI},
-          );
+            if (person.fcmTokens.contains(tokenI)) {
+              personsI.add(person.id);
+              person.fcmTokens.remove(tokenI);
+            }
+          }
+
+          if (personsA.isNotEmpty) {
+            await Database.connection.query(
+              "UPDATE persons SET fcmtokens = array_remove(fcm_tokens, @tokenA) WHERE id = ANY(@personsA)",
+              substitutionValues: {
+                "tokenA": tokenA,
+                "personsA": personsA.toList(),
+              },
+            );
+            await Database.connection.query(
+              "UPDATE persons SET fcmtokens = array_remove(fcm_tokens, @tokenI) WHERE id = ANY(@personsI)",
+              substitutionValues: {
+                "tokenI": tokenI,
+                "personsI": personsI.toList(),
+              },
+            );
+          }
         } catch (e, s) {
           outln("[JAVA] $e", Color.error);
           outln("[JAVA] $s", Color.error);

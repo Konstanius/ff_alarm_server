@@ -166,7 +166,7 @@ abstract class PersonInterface {
       birthday: birthday,
       allowedUnits: stationUnitIds.toList(),
       qualifications: qs,
-      fcmTokens: [],
+      fcmTokens: {},
       registrationKey: '$hash:${expires.millisecondsSinceEpoch}',
       response: {},
       updated: DateTime.now(),
