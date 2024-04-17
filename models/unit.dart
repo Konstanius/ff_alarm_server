@@ -5,6 +5,7 @@ import 'person.dart';
 
 class Unit {
   int id;
+  String tetraId;
   int stationId;
 
   /// Callsign should match regex:
@@ -39,6 +40,7 @@ class Unit {
 
   Unit({
     required this.id,
+    required this.tetraId,
     required this.stationId,
     required this.callSign,
     required this.unitDescription,
@@ -50,19 +52,21 @@ class Unit {
 
   static const Map<String, String> jsonShorts = {
     "server": "s",
+    "tetraId": "t",
     "id": "i",
     "stationId": "si",
-    "callSign": "cs",
-    "unitDescription": "ud",
+    "callSign": "c",
+    "unitDescription": "d",
     "status": "st",
-    "positions": "po",
+    "positions": "p",
     "capacity": "ca",
-    "updated": "up",
+    "updated": "u",
   };
 
   factory Unit.fromJson(Map<String, dynamic> json) {
     return Unit(
       id: json[jsonShorts["id"]],
+      tetraId: json[jsonShorts["tetraId"]],
       stationId: json[jsonShorts["stationId"]],
       callSign: json[jsonShorts["callSign"]],
       unitDescription: json[jsonShorts["unitDescription"]],
@@ -76,6 +80,7 @@ class Unit {
   Map<String, dynamic> toJson() {
     return {
       jsonShorts["server"]!: Config.config["server"],
+      jsonShorts["tetraId"]!: tetraId,
       jsonShorts["id"]!: id,
       jsonShorts["stationId"]!: stationId,
       jsonShorts["callSign"]!: callSign,
@@ -90,6 +95,7 @@ class Unit {
   factory Unit.fromDatabase(Map<String, dynamic> data) {
     return Unit(
       id: data["id"],
+      tetraId: data["tetraid"],
       stationId: data["stationid"],
       callSign: data["callsign"],
       unitDescription: data["unitdescription"],
@@ -103,6 +109,7 @@ class Unit {
   Map<String, dynamic> toDatabase() {
     return {
       "id": id,
+      "tetraid": tetraId,
       "stationid": stationId,
       "callsign": callSign,
       "unitdescription": unitDescription,
@@ -124,6 +131,7 @@ class Unit {
       await Database.connection.query(
         "CREATE TABLE units ("
         "id SERIAL PRIMARY KEY,"
+        "tetraid TEXT UNIQUE NOT NULL,"
         "stationid INTEGER NOT NULL,"
         "callsign TEXT NOT NULL,"
         "unitdescription TEXT NOT NULL,"
@@ -138,6 +146,19 @@ class Unit {
 
   static Future<Unit?> getById(int id) async {
     var result = await Database.connection.query("SELECT * FROM units WHERE id = @id;", substitutionValues: {"id": id});
+    if (result.isEmpty) {
+      return null;
+    }
+    return Unit.fromDatabase(result[0].toColumnMap());
+  }
+
+  static Future<List<Unit>> getByCallSign(String callSign) async {
+    var result = await Database.connection.query("SELECT * FROM units WHERE callsign = @callsign;", substitutionValues: {"callsign": callSign});
+    return result.map((e) => Unit.fromDatabase(e.toColumnMap())).toList();
+  }
+
+  static Future<Unit?> getByTetraId(String tetraId) async {
+    var result = await Database.connection.query("SELECT * FROM units WHERE tetraid = @tetraid;", substitutionValues: {"tetraid": tetraId});
     if (result.isEmpty) {
       return null;
     }
@@ -204,6 +225,23 @@ class Unit {
     for (var connection in realtimeConnections) {
       connection.send("unit_delete", {"id": id});
     }
+  }
+
+  Future<void> transferUnit(int newStationId) async {
+    var oldStationPeople = await Person.getByStationId(stationId);
+    var newStationPeople = await Person.getByStationId(newStationId);
+    Set<int> newStationMembers = newStationPeople.map((e) => e.id).toSet();
+
+    for (var person in oldStationPeople) {
+      if (!person.allowedUnits.contains(id)) continue;
+      if (newStationMembers.contains(person.id)) continue;
+
+      person.allowedUnits.remove(id);
+      await Person.update(person);
+    }
+
+    stationId = newStationId;
+    await update(this);
   }
 }
 

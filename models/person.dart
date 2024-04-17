@@ -14,8 +14,9 @@ class Person {
   DateTime birthday;
 
   /// The ids of the units that this user is allowed to operate
-  /// If an integer is negative, that means the user is not in the station that the unit is in at the moment
-  /// When the unit is returned to the station, the integer will be positive again
+  /// If an integer is negative, that means the user has been removed from the unit, and the id shall not be added to the list, when the unit is changed to or from the station
+  /// If the integer is positive, that means the user should be alarmed for the unit
+  /// If the integer is not present, the unit is not associated with the user in any way, and therefore the user should not be alarmed for it
   List<int> allowedUnits;
   List<Qualification> qualifications;
   List<String> fcmTokens;
