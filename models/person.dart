@@ -12,6 +12,10 @@ class Person {
   String firstName;
   String lastName;
   DateTime birthday;
+
+  /// The ids of the units that this user is allowed to operate
+  /// If an integer is negative, that means the user is not in the station that the unit is in at the moment
+  /// When the unit is returned to the station, the integer will be positive again
   List<int> allowedUnits;
   List<Qualification> qualifications;
   List<String> fcmTokens;

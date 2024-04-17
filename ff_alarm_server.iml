@@ -9,6 +9,8 @@
       <excludeFolder url="file://$MODULE_DIR$/panel/.dart_tool" />
       <excludeFolder url="file://$MODULE_DIR$/panel/.pub" />
       <excludeFolder url="file://$MODULE_DIR$/panel/build" />
+      <excludeFolder url="file://$MODULE_DIR$/packages" />
+      <excludeFolder url="file://$MODULE_DIR$/panel" />
     </content>
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="Dart SDK" level="project" />
