@@ -240,6 +240,14 @@ class Unit {
       await Person.update(person);
     }
 
+    for (var person in newStationPeople) {
+      if (person.allowedUnits.contains(id)) continue;
+      if (person.allowedUnits.contains(-id)) continue;
+
+      person.allowedUnits.add(id);
+      await Person.update(person);
+    }
+
     stationId = newStationId;
     await update(this);
   }
