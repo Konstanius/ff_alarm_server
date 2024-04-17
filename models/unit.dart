@@ -6,8 +6,31 @@ import 'person.dart';
 class Unit {
   int id;
   int stationId;
-  int unitType;
-  int unitIdentifier;
+
+  /// Callsign should match regex:
+  /// ^\S+\s+\S+(?:\s+\S+)*\s+\d+-\d+-\d+$
+  /// Florian Jena 5-43-1
+  String callSign;
+  static final RegExp callSignRegex = RegExp(r"^\S+\s+\S+(?:\s+\S+)*\s+\d+-\d+-\d+$");
+
+  ({String prefix, String area, int stationIdentifier, int unitType, int unitIndex})? get unitInformation {
+    List<String> splits = callSign.split(' ');
+    if (splits.length < 3) return null;
+    List<String> stationSplits = splits.last.split('-');
+    if (stationSplits.length != 3) return null;
+
+    String prefix = splits[0];
+    String area = splits.sublist(1, splits.length - 1).join(' ');
+
+    int? stationIdentifier = int.tryParse(stationSplits[0]);
+    int? unitType = int.tryParse(stationSplits[1]);
+    int? unitIndex = int.tryParse(stationSplits[2]);
+
+    if (stationIdentifier == null || unitType == null || unitIndex == null) return null;
+
+    return (prefix: prefix, area: area, stationIdentifier: stationIdentifier, unitType: unitType, unitIndex: unitIndex);
+  }
+
   String unitDescription;
   int status;
   List<UnitPosition> positions;
@@ -17,8 +40,7 @@ class Unit {
   Unit({
     required this.id,
     required this.stationId,
-    required this.unitType,
-    required this.unitIdentifier,
+    required this.callSign,
     required this.unitDescription,
     required this.status,
     required this.positions,
@@ -30,8 +52,7 @@ class Unit {
     "server": "s",
     "id": "i",
     "stationId": "si",
-    "unitType": "ut",
-    "unitIdentifier": "ui",
+    "callSign": "cs",
     "unitDescription": "ud",
     "status": "st",
     "positions": "po",
@@ -43,8 +64,7 @@ class Unit {
     return Unit(
       id: json[jsonShorts["id"]],
       stationId: json[jsonShorts["stationId"]],
-      unitType: json[jsonShorts["unitType"]],
-      unitIdentifier: json[jsonShorts["unitIdentifier"]],
+      callSign: json[jsonShorts["callSign"]],
       unitDescription: json[jsonShorts["unitDescription"]],
       status: json[jsonShorts["status"]],
       positions: List<UnitPosition>.from(json[jsonShorts["positions"]].map((e) => UnitPosition.values[e])),
@@ -58,8 +78,7 @@ class Unit {
       jsonShorts["server"]!: Config.config["server"],
       jsonShorts["id"]!: id,
       jsonShorts["stationId"]!: stationId,
-      jsonShorts["unitType"]!: unitType,
-      jsonShorts["unitIdentifier"]!: unitIdentifier,
+      jsonShorts["callSign"]!: callSign,
       jsonShorts["unitDescription"]!: unitDescription,
       jsonShorts["status"]!: status,
       jsonShorts["positions"]!: positions.map((e) => e.index).toList(),
@@ -72,8 +91,7 @@ class Unit {
     return Unit(
       id: data["id"],
       stationId: data["stationid"],
-      unitType: data["unittype"],
-      unitIdentifier: data["unitidentifier"],
+      callSign: data["callsign"],
       unitDescription: data["unitdescription"],
       status: data["status"],
       positions: List<UnitPosition>.from(data["positions"].map((e) => UnitPosition.values[e])),
@@ -86,8 +104,7 @@ class Unit {
     return {
       "id": id,
       "stationid": stationId,
-      "unittype": unitType,
-      "unitidentifier": unitIdentifier,
+      "callsign": callSign,
       "unitdescription": unitDescription,
       "status": status,
       "positions": positions.map((e) => e.index).toList(),
@@ -104,17 +121,18 @@ class Unit {
         ");");
 
     if (result[0][0] == false) {
-      await Database.connection.query("CREATE TABLE units ("
-          "id SERIAL PRIMARY KEY,"
-          "stationid INTEGER NOT NULL,"
-          "unittype INTEGER NOT NULL,"
-          "unitidentifier INTEGER NOT NULL,"
-          "unitdescription TEXT NOT NULL,"
-          "status INTEGER NOT NULL,"
-          "positions INTEGER[] NOT NULL,"
-          "capacity INTEGER NOT NULL,"
-          "updated BIGINT NOT NULL"
-          ");");
+      await Database.connection.query(
+        "CREATE TABLE units ("
+        "id SERIAL PRIMARY KEY,"
+        "stationid INTEGER NOT NULL,"
+        "callsign TEXT NOT NULL,"
+        "unitdescription TEXT NOT NULL,"
+        "status INTEGER NOT NULL,"
+        "positions INTEGER[] NOT NULL,"
+        "capacity INTEGER NOT NULL,"
+        "updated BIGINT NOT NULL"
+        ");",
+      );
     }
   }
 
@@ -144,7 +162,7 @@ class Unit {
   static Future<void> insert(Unit unit) async {
     unit.updated = DateTime.now();
     var result = await Database.connection.query(
-      "INSERT INTO units (id, stationid, unittype, unitidentifier, unitdescription, status, positions, capacity, updated) VALUES (@id, @stationid, @unittype, @unitidentifier, @unitdescription, @status, @positions, @capacity, @updated) RETURNING id;",
+      "INSERT INTO units (id, stationid, callsign, unitdescription, status, positions, capacity, updated) VALUES (@id, @stationid, @callsign, @unitdescription, @status, @positions, @capacity, @updated) RETURNING id;",
       substitutionValues: unit.toDatabase(),
     );
     unit.id = result[0][0];
@@ -154,7 +172,7 @@ class Unit {
   static Future<void> update(Unit unit) async {
     unit.updated = DateTime.now();
     await Database.connection.query(
-      "UPDATE units SET stationid = @stationid, unittype = @unittype, unitidentifier = @unitidentifier, unitdescription = @unitdescription, status = @status, positions = @positions, capacity = @capacity, updated = @updated WHERE id = @id;",
+      "UPDATE units SET stationid = @stationid, callsign = @callsign, unitdescription = @unitdescription, status = @status, positions = @positions, capacity = @capacity, updated = @updated WHERE id = @id;",
       substitutionValues: unit.toDatabase(),
     );
     Unit.broadcastChange(unit);
