@@ -2,6 +2,7 @@ import 'dart:io';
 
 import '../models/person.dart';
 import '../models/station.dart';
+import '../models/unit.dart';
 
 abstract class StationInterface {
   static Future<void> getAll(Person person, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
@@ -87,5 +88,124 @@ abstract class StationInterface {
     }
 
     await callback(HttpStatus.ok, response);
+  }
+
+  static Future<void> removePerson(Person person, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
+    int personId = data["personId"];
+    int stationId = data["stationId"];
+
+    var station = await Station.getById(stationId);
+    if (station == null) {
+      await callback(HttpStatus.notFound, {"message": "Die Wache wurde nicht gefunden."});
+      return;
+    }
+
+    if (!station.adminPersons.contains(person.id)) {
+      await callback(HttpStatus.forbidden, {"message": "Du bist nicht berechtigt, auf diese Wache zuzugreifen."});
+      return;
+    }
+
+    if (personId == person.id) {
+      await callback(HttpStatus.forbidden, {"message": "Du kannst dich nicht selbst von der Wache entfernen."});
+      return;
+    }
+
+    if (!station.persons.contains(personId)) {
+      await callback(HttpStatus.notFound, {"message": "Die Person ist nicht auf dieser Wache."});
+      return;
+    }
+
+    station.persons.remove(personId);
+    station.adminPersons.remove(personId);
+    await Station.update(station);
+
+    var toRemove = await Person.getById(personId);
+    if (toRemove != null) {
+      var units = await Unit.getByStationId(stationId);
+      for (var unit in units) {
+        if (toRemove.allowedUnits.contains(unit.id)) {
+          toRemove.allowedUnits.remove(unit.id);
+        }
+      }
+
+      await Person.update(toRemove);
+    }
+
+    await callback(HttpStatus.ok, station.toJson());
+  }
+
+  static Future<void> addPerson(Person person, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
+    int personId = data["personId"];
+    int stationId = data["stationId"];
+
+    var station = await Station.getById(stationId);
+    if (station == null) {
+      await callback(HttpStatus.notFound, {"message": "Die Wache wurde nicht gefunden."});
+      return;
+    }
+
+    if (!station.adminPersons.contains(person.id)) {
+      await callback(HttpStatus.forbidden, {"message": "Du bist nicht berechtigt, auf diese Wache zuzugreifen."});
+      return;
+    }
+
+    if (station.persons.contains(personId)) {
+      await callback(HttpStatus.conflict, {"message": "Die Person ist bereits auf dieser Wache."});
+      return;
+    }
+
+    station.persons.add(personId);
+    await Station.update(station);
+
+    var toAdd = await Person.getById(personId);
+    if (toAdd != null) {
+      var units = await Unit.getByStationId(stationId);
+      for (var unit in units) {
+        if (!toAdd.allowedUnits.contains(unit.id) && !toAdd.allowedUnits.contains(-unit.id)) {
+          toAdd.allowedUnits.add(unit.id);
+        }
+      }
+
+      await Person.update(toAdd);
+    }
+
+    await callback(HttpStatus.ok, station.toJson());
+  }
+
+  static Future<void> setAdmin(Person person, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
+    int personId = data["personId"];
+    bool toAdmin = data["toAdmin"];
+    int stationId = data["stationId"];
+
+    var station = await Station.getById(stationId);
+    if (station == null) {
+      await callback(HttpStatus.notFound, {"message": "Die Wache wurde nicht gefunden."});
+      return;
+    }
+
+    if (!station.adminPersons.contains(person.id)) {
+      await callback(HttpStatus.forbidden, {"message": "Du bist nicht berechtigt, auf diese Wache zuzugreifen."});
+      return;
+    }
+
+    if (personId == person.id) {
+      await callback(HttpStatus.forbidden, {"message": "Du kannst deine eigenen Rechte nicht ändern."});
+      return;
+    }
+
+    if (!station.persons.contains(personId)) {
+      await callback(HttpStatus.notFound, {"message": "Die Person ist nicht auf dieser Wache."});
+      return;
+    }
+
+    if (toAdmin) {
+      station.adminPersons.add(personId);
+    } else {
+      station.adminPersons.remove(personId);
+    }
+
+    await Station.update(station);
+
+    await callback(HttpStatus.ok, station.toJson());
   }
 }
