@@ -19,6 +19,21 @@ class Person {
   /// If the integer is not present, the unit is not associated with the user in any way, and therefore the user should not be alarmed for it
   List<int> allowedUnits;
   List<Qualification> qualifications;
+
+  List<Qualification> visibleQualificationsAt(DateTime date) {
+    List<Qualification> active = [];
+
+    for (var qualification in qualifications) {
+      if (qualification.type.startsWith("_")) continue;
+      if (qualification.start == null && qualification.end == null) continue;
+      if (qualification.start == null && qualification.end != null && qualification.end!.isAfter(date)) active.add(qualification);
+      if (qualification.start != null && qualification.end == null && qualification.start!.isBefore(date)) active.add(qualification);
+      if (qualification.start != null && qualification.end != null && qualification.start!.isBefore(date) && qualification.end!.isAfter(date)) active.add(qualification);
+    }
+
+    return active;
+  }
+
   List<String> fcmTokens;
   String registrationKey;
   Map<int, PersonStaticAlarmResponse> response;

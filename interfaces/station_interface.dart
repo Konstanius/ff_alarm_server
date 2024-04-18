@@ -76,7 +76,7 @@ abstract class StationInterface {
 
         response[station.id.toString()]["${notifyMode.value}T"] = response[station.id.toString()]["${notifyMode.value}T"] + 1;
 
-        for (var qualification in person.qualifications) {
+        for (var qualification in person.visibleQualificationsAt(now)) {
           if (!response[station.id.toString()][notifyMode.value].containsKey(qualification.type)) {
             response[station.id.toString()][notifyMode.value][qualification.type] = 1;
           } else {
