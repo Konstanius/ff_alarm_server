@@ -90,6 +90,7 @@ class Station {
 
   Map<String, dynamic> toDatabase() {
     return {
+      "id": id,
       "area": area,
       "name": name,
       "prefix": prefix,
