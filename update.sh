@@ -3,9 +3,6 @@ set -e
 echo "Updating source"
 git pull
 
-echo "Stopping old docker container"
-docker stop ff_alarm_server || true
-
 echo "Getting dependencies of dart project"
 dart pub get
 
@@ -14,6 +11,9 @@ dart compile exe main.dart -o resources/main.exe
 
 echo "Building docker image \"ff_alarm_server\""
 docker build -t ff_alarm_server .
+
+echo "Stopping old docker container"
+docker stop ff_alarm_server || true
 
 echo "Deleting old docker image \"ff_alarm_server\""
 docker container rm ff_alarm_server || true
@@ -27,7 +27,9 @@ docker start ff_alarm_server
 echo "Pruning unused docker images"
 docker image prune -f
 
-echo "Setting permissions for resources folder"
-sudo chmod -R 777 resources/
+if [ "$(stat -c %a resources/)" != "777" ]; then
+    echo "Setting permissions for resources folder"
+    sudo chmod -R 777 resources/
+fi
 
 echo "Successfully updated and started ff_alarm_server"
