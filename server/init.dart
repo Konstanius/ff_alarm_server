@@ -133,11 +133,32 @@ Future<void> initServer() async {
       }
 
       if (authParts.first == "tetra") {
-        // TODO implement API authentication from TETRA servers
+        /// TODO implement API authentication from TETRA servers
+        /// Interfaces that are required:
+        /// - unitSetStatus
+        /// - unitChangeStation
+        /// - alarmSend
+        /// - alarmTest
+        /// - alarmUpdate
+        /// - ? alarmCancel
         return;
       }
+
       if (authParts.first == "admin") {
-        // TODO implement API authentication from admin panel
+        /// TODO implement API authentication from admin panel
+        /// Interfaces that are required:
+        /// - unitCreate
+        /// - unitUpdate
+        /// - unitDelete
+        /// - unitList
+        /// - stationCreate
+        /// - stationUpdate
+        /// - stationDelete
+        /// - stationList
+        /// - personCreate
+        /// - personUpdate
+        /// - personDelete
+        /// - personList
         return;
       }
 
@@ -147,6 +168,16 @@ Future<void> initServer() async {
         return;
       }
       String key = authParts[1];
+
+      if (sessionId < 0) {
+        /// TODO implement API authentication from monitors
+        /// Interfaces that are required:
+        /// - alarmGetActive
+        /// - alarmGetDetails
+        /// - stationGetStats
+        /// - unitGetAll
+        return;
+      }
 
       Session? session = await Session.getById(sessionId);
       if (session == null) {

@@ -358,6 +358,52 @@ class PersonStaticAlarmResponse {
     return true;
   }
 
+  NotifyInformation getNotifyMode(int personId, DateTime now, int dayMillis, int day) {
+    if (manualOverride == 0) return NotifyInformation.no;
+    if (manualOverride == 2) return NotifyInformation.yes;
+
+    if (calendar.isNotEmpty) {
+      for (var item in calendar) {
+        if (now.isAfter(item.start) && now.isBefore(item.end)) return NotifyInformation.no;
+      }
+    }
+
+    if (enabledMode == 0) return NotifyInformation.yes;
+
+    if ((enabledMode == 1 || enabledMode == 2)) {
+      if (enabledMode == 1) {
+        for (var item in shiftPlan) {
+          if (item.day == day && dayMillis >= item.start && dayMillis <= item.end) return NotifyInformation.yes;
+        }
+        return NotifyInformation.no;
+      } else if (enabledMode == 2) {
+        for (var item in shiftPlan) {
+          if (item.day == day && dayMillis >= item.start && dayMillis <= item.end) return NotifyInformation.no;
+        }
+        return NotifyInformation.yes;
+      }
+    }
+
+    if (enabledMode == 3) {
+      if (geofencing.isEmpty) return NotifyInformation.unknown;
+      var position = PersonInterface.globalLocations[personId];
+      if (position == null) return NotifyInformation.unknown;
+
+      if (now.millisecondsSinceEpoch - position.time > PersonInterface.locationTimeout) return NotifyInformation.unknown;
+
+      for (var item in geofencing) {
+        try {
+          double distance = Utils.distanceBetween(item.latitude, item.longitude, position.lat, position.lon);
+          if (distance < item.radius) return NotifyInformation.yes;
+        } catch (_) {}
+      }
+
+      return NotifyInformation.no;
+    }
+
+    return NotifyInformation.unknown;
+  }
+
   static const Map<String, String> jsonShorts = {
     "stationId": "s",
     "manualOverride": "m",
@@ -457,5 +503,22 @@ class PersonStaticAlarmResponse {
       } catch (_) {}
     });
     return responses;
+  }
+}
+
+enum NotifyInformation {
+  yes,
+  no,
+  unknown;
+
+  String get value {
+    switch (this) {
+      case NotifyInformation.yes:
+        return "y";
+      case NotifyInformation.no:
+        return "n";
+      case NotifyInformation.unknown:
+        return "u";
+    }
   }
 }
