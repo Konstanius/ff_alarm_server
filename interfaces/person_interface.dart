@@ -204,9 +204,8 @@ abstract class PersonInterface {
         'startTime': DateTime.now().millisecondsSinceEpoch,
         'server': Config.config['server'],
       },
-      // androidTokens: isAndroid ? {fcmToken} : {},
-      // iosTokens: isAndroid ? {} : {fcmToken},
-      genericTokens: {fcmToken},
+      androidTokens: isAndroid ? {fcmToken} : {},
+      iosTokens: isAndroid ? {} : {fcmToken},
     );
 
     await callback(HttpStatus.ok, {});

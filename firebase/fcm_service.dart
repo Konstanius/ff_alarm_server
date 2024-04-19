@@ -119,8 +119,6 @@ Future<List<int>> invokeSDK(
   Map<String, dynamic> args = {"method": isTopic ? "topic" : "tokens"};
   if (isTopic) {
     args["topic"] = topic!;
-    args["type"] = type;
-    args["data"] = dataMap;
   } else {
     Map<String, dynamic> tokens = {
       "genericLow": genericLow.toList(),
@@ -128,9 +126,9 @@ Future<List<int>> invokeSDK(
       "android": androidHigh.toList(),
     };
     args["tokens"] = tokens;
-    args["type"] = type;
-    args["data"] = dataMap;
   }
+  args["type"] = type;
+  args["data"] = dataMap;
 
   fcmStream!.writeln(jsonEncode(args));
 
