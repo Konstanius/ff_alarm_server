@@ -58,16 +58,6 @@ Future<void> initServer() async {
 
       String keyword = uri.pathSegments[1];
 
-      if (keyword == 'ping') {
-        request.response.statusCode = HttpStatus.ok;
-        List<int> data = utf8.encode('{}');
-        request.response.contentLength = data.length;
-        request.response.add(data);
-        await request.response.flush();
-        await request.response.close();
-        return;
-      }
-
       if (uri.pathSegments[0] == 'realtime') {
         await handleRealtime(request);
         return;

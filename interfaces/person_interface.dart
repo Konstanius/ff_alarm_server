@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import '../firebase/fcm_service.dart';
 import '../models/person.dart';
 import '../models/station.dart';
 import '../models/unit.dart';
@@ -189,5 +190,24 @@ abstract class PersonInterface {
     String base64String = base64.encode(gZipJson);
 
     await callback(HttpStatus.ok, {"key": base64String, "id": newPerson.id});
+  }
+
+  static Future<void> ping(Person person, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
+    String fcmToken = data["fcmToken"];
+    String platform = data["platform"];
+    bool isAndroid = platform == "A";
+
+    await invokeSDK(
+      false,
+      'fcmTest',
+      {
+        'startTime': DateTime.now().millisecondsSinceEpoch,
+        'server': Config.config['server'],
+      },
+      androidTokens: isAndroid ? {fcmToken} : {},
+      iosTokens: isAndroid ? {} : {fcmToken},
+    );
+
+    await callback(HttpStatus.ok, {});
   }
 }
