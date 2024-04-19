@@ -88,22 +88,39 @@ Future<void> startFCMService() async {
   outln("FCM service started", Color.success);
 }
 
-Future<List<int>> invokeSDK(bool isTopic, String type, Map<String, dynamic> data, {String? topic, Set<String>? androidTokens, Set<String>? iosTokens}) async {
+Future<List<int>> invokeSDK(
+  bool isTopic,
+  String type,
+  Map<String, dynamic> data, {
+  String? topic,
+  Set<String>? androidTokens,
+  Set<String>? iosTokens,
+  Set<String>? genericTokens,
+}) async {
   if (fcmStream == null) {
     await startFCMService();
 
     await Future.delayed(const Duration(seconds: 1));
   }
 
-  Set<String> genericLow = {};
+  Set<String> genericLow = {...genericTokens ?? {}};
   Set<String> androidHigh = {...androidTokens ?? {}};
   Set<String> iosHigh = {...iosTokens ?? {}};
+
+  Map<String, String> dataMap = {};
+  for (var entry in data.entries) {
+    if (entry.value is String) {
+      dataMap[entry.key] = entry.value;
+    } else {
+      dataMap[entry.key] = jsonEncode(entry.value);
+    }
+  }
 
   Map<String, dynamic> args = {"method": isTopic ? "topic" : "tokens"};
   if (isTopic) {
     args["topic"] = topic!;
     args["type"] = type;
-    args["data"] = data;
+    args["data"] = dataMap;
   } else {
     Map<String, dynamic> tokens = {
       "genericLow": genericLow.toList(),
@@ -112,7 +129,7 @@ Future<List<int>> invokeSDK(bool isTopic, String type, Map<String, dynamic> data
     };
     args["tokens"] = tokens;
     args["type"] = type;
-    args["data"] = data;
+    args["data"] = dataMap;
   }
 
   fcmStream!.writeln(jsonEncode(args));
