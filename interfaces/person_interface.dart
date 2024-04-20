@@ -187,7 +187,7 @@ abstract class PersonInterface {
     final gZipJson = gzip.encode(enCodedJson);
     String base64String = base64.encode(gZipJson);
 
-    await callback(HttpStatus.ok, {"key": base64String, "id": newPerson.id});
+    await callback(HttpStatus.ok, {"key": base64String, "person": newPerson.toJson()});
   }
 
   static Future<void> update(Person person, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
@@ -257,7 +257,7 @@ abstract class PersonInterface {
 
     await Person.update(editPerson);
 
-    await callback(HttpStatus.ok, {});
+    await callback(HttpStatus.ok, person.toJson());
   }
 
   static Future<void> ping(Person person, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
