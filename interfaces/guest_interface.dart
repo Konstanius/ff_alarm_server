@@ -12,25 +12,25 @@ abstract class GuestInterface {
 
     Person? person = await Person.getById(personId);
     if (person == null) {
-      await callback(HttpStatus.notFound, {"message": "Person nicht gefunden"});
+      await callback(HttpStatus.notFound, {"message": "Person nicht gefunden."});
       return;
     }
 
     List<String> keyInfo = person.registrationKey.split(":");
     if (keyInfo.length != 2) {
-      await callback(HttpStatus.badRequest, {"message": "Ungültiger Registrierungsschlüssel"});
+      await callback(HttpStatus.badRequest, {"message": "Ungültiger Registrierungsschlüssel."});
       return;
     }
 
     DateTime keyExpires = DateTime.fromMillisecondsSinceEpoch(int.parse(keyInfo[1]));
     if (keyExpires.isBefore(DateTime.now())) {
-      await callback(HttpStatus.forbidden, {"message": "Registrierungsschlüssel abgelaufen"});
+      await callback(HttpStatus.forbidden, {"message": "Registrierungsschlüssel abgelaufen."});
       return;
     }
 
     bool matches = await HashUtils.compareHash(key, keyInfo[0]);
     if (!matches) {
-      await callback(HttpStatus.forbidden, {"message": "Ungültiger Registrierungsschlüssel"});
+      await callback(HttpStatus.forbidden, {"message": "Ungültiger Registrierungsschlüssel."});
       return;
     }
 
@@ -65,12 +65,12 @@ abstract class GuestInterface {
 
     Session? session = await Session.getById(sessionId);
     if (session == null) {
-      await callback(HttpStatus.notFound, {"message": "Sitzung nicht gefunden"});
+      await callback(HttpStatus.notFound, {"message": "Sitzung nicht gefunden."});
       return;
     }
 
     if (session.tokenHash != HashUtils.lightHash(token)) {
-      await callback(HttpStatus.forbidden, {"message": "Ungültiger Token"});
+      await callback(HttpStatus.forbidden, {"message": "Ungültiger Token."});
       return;
     }
 

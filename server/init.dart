@@ -84,13 +84,13 @@ Future<void> initServer() async {
           String boundRequest = await utf8.decoder.bind(request).join();
           data = json.decode(boundRequest);
         } catch (e) {
-          await callback(HttpStatus.badRequest, {"message": "Die Anfrage konnte nicht verarbeitet werden"});
+          await callback(HttpStatus.badRequest, {"message": "Die Anfrage konnte nicht verarbeitet werden."});
           return;
         }
 
         var method = AuthMethod.guestMethods[keyword];
         if (method == null) {
-          await callback(HttpStatus.notFound, {"message": "Die angeforderte Resource wurde nicht gefunden"});
+          await callback(HttpStatus.notFound, {"message": "Die angeforderte Resource wurde nicht gefunden."});
           return;
         }
 
@@ -101,7 +101,7 @@ Future<void> initServer() async {
         } catch (e, s) {
           request.response.statusCode = HttpStatus.internalServerError;
           outln("Internal server error: $e\n$s", Color.error);
-          request.response.add(utf8.encode(json.encode({"message": "Ein interner Serverfehler ist aufgetreten"})));
+          request.response.add(utf8.encode(json.encode({"message": "Ein interner Serverfehler ist aufgetreten."})));
           await request.response.flush();
           await request.response.close();
         }
@@ -112,13 +112,13 @@ Future<void> initServer() async {
 
       String decodedAuth = utf8.decode(gzip.decode(base64.decode(rawAuth)));
       if (!decodedAuth.contains(' ')) {
-        await callback(HttpStatus.badRequest, {"message": "Die Anfrage konnte nicht verarbeitet werden"});
+        await callback(HttpStatus.badRequest, {"message": "Die Anfrage konnte nicht verarbeitet werden."});
         return;
       }
 
       List<String> authParts = decodedAuth.split(' ');
       if (authParts.length != 2) {
-        await callback(HttpStatus.badRequest, {"message": "Die Anfrage konnte nicht verarbeitet werden"});
+        await callback(HttpStatus.badRequest, {"message": "Die Anfrage konnte nicht verarbeitet werden."});
         return;
       }
 
@@ -154,7 +154,7 @@ Future<void> initServer() async {
 
       int? sessionId = int.tryParse(authParts[0]);
       if (sessionId == null) {
-        await callback(HttpStatus.badRequest, {"message": "Die Anfrage konnte nicht verarbeitet werden"});
+        await callback(HttpStatus.badRequest, {"message": "Die Anfrage konnte nicht verarbeitet werden."});
         return;
       }
       String key = authParts[1];
@@ -171,25 +171,25 @@ Future<void> initServer() async {
 
       Session? session = await Session.getById(sessionId);
       if (session == null) {
-        await callback(HttpStatus.unauthorized, {"message": "Kein Zugriff auf diese Resource"});
+        await callback(HttpStatus.unauthorized, {"message": "Kein Zugriff auf diese Resource."});
         return;
       }
 
       bool valid = await session.validate(key);
       if (!valid) {
-        await callback(HttpStatus.unauthorized, {"message": "Kein Zugriff auf diese Resource"});
+        await callback(HttpStatus.unauthorized, {"message": "Kein Zugriff auf diese Resource."});
         return;
       }
 
       Person? person = await Person.getById(session.personId);
       if (person == null) {
-        await callback(HttpStatus.unauthorized, {"message": "Kein Zugriff auf diese Resource"});
+        await callback(HttpStatus.unauthorized, {"message": "Kein Zugriff auf diese Resource."});
         return;
       }
 
       var method = AuthMethod.authMethods[keyword];
       if (method == null) {
-        await callback(HttpStatus.notFound, {"message": "Die angeforderte Resource wurde nicht gefunden"});
+        await callback(HttpStatus.notFound, {"message": "Die angeforderte Resource wurde nicht gefunden."});
         return;
       }
 
@@ -198,7 +198,7 @@ Future<void> initServer() async {
         String boundRequest = await utf8.decoder.bind(request).join();
         data = json.decode(boundRequest);
       } catch (e) {
-        await callback(HttpStatus.badRequest, {"message": "Die Anfrage konnte nicht verarbeitet werden"});
+        await callback(HttpStatus.badRequest, {"message": "Die Anfrage konnte nicht verarbeitet werden."});
         return;
       }
 
@@ -220,14 +220,14 @@ Future<void> initServer() async {
       } catch (e, s) {
         request.response.statusCode = HttpStatus.internalServerError;
         outln("Internal server error: $e\n$s", Color.error);
-        request.response.add(utf8.encode(json.encode({"message": "Ein interner Serverfehler ist aufgetreten"})));
+        request.response.add(utf8.encode(json.encode({"message": "Ein interner Serverfehler ist aufgetreten."})));
         await request.response.flush();
         await request.response.close();
       }
     } catch (e, s) {
       request.response.statusCode = HttpStatus.internalServerError;
       outln("Internal server error: $e\n$s", Color.error);
-      request.response.add(utf8.encode(json.encode({"message": "Ein interner Serverfehler ist aufgetreten"})));
+      request.response.add(utf8.encode(json.encode({"message": "Ein interner Serverfehler ist aufgetreten."})));
       await request.response.flush();
       await request.response.close();
     }
@@ -260,9 +260,7 @@ class RealtimeConnection {
   void send(String event, Map<String, dynamic> data) {
     try {
       socket.addUtf8Text(utf8.encode((jsonEncode({'event': event, 'data': data}))));
-    } catch (e, s) {
-      outln('Error in Realtime-Server: $e', Color.error);
-      outln(s.toString(), Color.error);
+    } catch (_) {
       close();
     }
   }

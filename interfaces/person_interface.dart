@@ -104,7 +104,7 @@ abstract class PersonInterface {
 
     Station? station = await Station.getById(stationId);
     if (station == null) {
-      await callback(HttpStatus.notFound, {"message": "Die Wache konnte nicht gefunden werden"});
+      await callback(HttpStatus.notFound, {"message": "Die Wache konnte nicht gefunden werden."});
       return;
     }
 
@@ -188,6 +188,76 @@ abstract class PersonInterface {
     String base64String = base64.encode(gZipJson);
 
     await callback(HttpStatus.ok, {"key": base64String, "id": newPerson.id});
+  }
+
+  static Future<void> update(Person person, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
+    int stationId = data["stationId"];
+    Station? station = await Station.getById(stationId);
+    if (station == null) {
+      await callback(HttpStatus.notFound, {"message": "Die Wache konnte nicht gefunden werden."});
+      return;
+    }
+
+    if (!station.adminPersons.contains(person.id)) {
+      await callback(HttpStatus.forbidden, {"message": "Du bist nicht berechtigt, auf diese Wache zuzugreifen."});
+      return;
+    }
+
+    int personId = data["personId"];
+
+    if (!station.persons.contains(personId)) {
+      await callback(HttpStatus.notFound, {"message": "Die Person ist kein Mitglied dieser Wache."});
+      return;
+    }
+
+    String firstName = data["firstName"].trim();
+    String lastName = data["lastName"].trim();
+    DateTime birthday = DateTime.fromMillisecondsSinceEpoch(data["birthday"]);
+    List<dynamic> qualifications = data["qualifications"];
+
+    if (firstName.isEmpty || lastName.isEmpty) {
+      await callback(HttpStatus.badRequest, {"message": "Vor- und Nachname dürfen nicht leer sein."});
+      return;
+    }
+
+    // limit to 100 chars each
+    if (firstName.length > 100 || lastName.length > 100) {
+      await callback(HttpStatus.badRequest, {"message": "Vor- und Nachname dürfen nicht länger als je 100 Zeichen sein."});
+      return;
+    }
+
+    if (birthday.isAfter(DateTime.now())) {
+      await callback(HttpStatus.badRequest, {"message": "Geburtstag darf nicht in der Zukunft liegen."});
+      return;
+    }
+
+    List<Qualification> qs = [];
+    Set<String> qSet = {};
+    for (String q in qualifications) {
+      String withoutLeadingUnderscore = q.startsWith("_") ? q.substring(1) : q;
+      if (qSet.contains(withoutLeadingUnderscore)) {
+        await callback(HttpStatus.badRequest, {"message": "Qualifikationen dürfen nicht doppelt vorkommen."});
+        return;
+      }
+      qs.add(Qualification.fromString(q));
+      qSet.add(withoutLeadingUnderscore);
+    }
+
+    Person? editPerson = await Person.getById(personId);
+    if (editPerson == null) {
+      await callback(HttpStatus.notFound, {"message": "Die Person konnte nicht gefunden werden."});
+      return;
+    }
+
+    editPerson.firstName = firstName;
+    editPerson.lastName = lastName;
+    editPerson.birthday = birthday;
+    editPerson.qualifications = qs;
+    editPerson.updated = DateTime.now();
+
+    await Person.update(editPerson);
+
+    await callback(HttpStatus.ok, {});
   }
 
   static Future<void> ping(Person person, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {

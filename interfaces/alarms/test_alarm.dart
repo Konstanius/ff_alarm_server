@@ -5,5 +5,5 @@ import '../../models/person.dart';
 
 Future<void> sendTestAlarms(Person person, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
   await FCMMethods.sendTestAlarm(fcms: person.fcmTokens);
-  await callback(HttpStatus.ok, {"message": "Test successful"});
+  await callback(HttpStatus.ok, {"message": "Test successful."});
 }

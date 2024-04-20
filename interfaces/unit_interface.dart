@@ -45,7 +45,7 @@ abstract class UnitInterface {
 
     Station? station = await Station.getById(stationId);
     if (station == null) {
-      await callback(HttpStatus.notFound, {"message": "Die Wache konnte nicht gefunden werden"});
+      await callback(HttpStatus.notFound, {"message": "Die Wache konnte nicht gefunden werden."});
       return;
     }
 
@@ -65,13 +65,13 @@ abstract class UnitInterface {
 
     Unit? unit = await Unit.getById(unitId);
     if (unit == null) {
-      await callback(HttpStatus.notFound, {"message": "Die Einheit konnte nicht gefunden werden"});
+      await callback(HttpStatus.notFound, {"message": "Die Einheit konnte nicht gefunden werden."});
       return;
     }
 
     Station? station = await Station.getById(unit.stationId);
     if (station == null) {
-      await callback(HttpStatus.notFound, {"message": "Die Wache konnte nicht gefunden werden"});
+      await callback(HttpStatus.notFound, {"message": "Die Wache konnte nicht gefunden werden."});
       return;
     }
 
@@ -82,12 +82,12 @@ abstract class UnitInterface {
 
     Person? personToRemove = await Person.getById(personId);
     if (personToRemove == null) {
-      await callback(HttpStatus.notFound, {"message": "Die Person konnte nicht gefunden werden"});
+      await callback(HttpStatus.notFound, {"message": "Die Person konnte nicht gefunden werden."});
       return;
     }
 
     if (!personToRemove.allowedUnits.contains(unitId)) {
-      await callback(HttpStatus.notFound, {"message": "Die Person ist dieser Einheit nicht zugeordnet"});
+      await callback(HttpStatus.notFound, {"message": "Die Person ist dieser Einheit nicht zugeordnet."});
       return;
     }
 
@@ -104,13 +104,13 @@ abstract class UnitInterface {
 
     Unit? unit = await Unit.getById(unitId);
     if (unit == null) {
-      await callback(HttpStatus.notFound, {"message": "Die Einheit konnte nicht gefunden werden"});
+      await callback(HttpStatus.notFound, {"message": "Die Einheit konnte nicht gefunden werden."});
       return;
     }
 
     Station? station = await Station.getById(unit.stationId);
     if (station == null) {
-      await callback(HttpStatus.notFound, {"message": "Die Wache konnte nicht gefunden werden"});
+      await callback(HttpStatus.notFound, {"message": "Die Wache konnte nicht gefunden werden."});
       return;
     }
 
@@ -126,12 +126,12 @@ abstract class UnitInterface {
 
     Person? personToAdd = await Person.getById(personId);
     if (personToAdd == null) {
-      await callback(HttpStatus.notFound, {"message": "Die Person konnte nicht gefunden werden"});
+      await callback(HttpStatus.notFound, {"message": "Die Person konnte nicht gefunden werden."});
       return;
     }
 
     if (personToAdd.allowedUnits.contains(unitId)) {
-      await callback(HttpStatus.notFound, {"message": "Die Person ist dieser Einheit bereits zugeordnet"});
+      await callback(HttpStatus.notFound, {"message": "Die Person ist dieser Einheit bereits zugeordnet."});
       return;
     }
 

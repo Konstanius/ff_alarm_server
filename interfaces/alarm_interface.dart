@@ -57,7 +57,7 @@ abstract class AlarmInterface {
     int alarmId = data["alarmId"];
     Alarm? alarm = await Alarm.getById(alarmId);
     if (alarm == null) {
-      await callback(HttpStatus.notFound, {"message": "Alarmierung nicht gefunden"});
+      await callback(HttpStatus.notFound, {"message": "Alarmierung nicht gefunden."});
       return;
     }
 
@@ -82,7 +82,7 @@ abstract class AlarmInterface {
 
     Alarm? alarm = await Alarm.getById(alarmId);
     if (alarm == null) {
-      await callback(HttpStatus.notFound, {"message": "Alarmierung nicht gefunden"});
+      await callback(HttpStatus.notFound, {"message": "Alarmierung nicht gefunden."});
       return;
     }
 
@@ -150,7 +150,7 @@ abstract class AlarmInterface {
     int alarmId = int.parse(split[0]);
     Alarm? alarm = await Alarm.getById(alarmId);
     if (alarm == null) {
-      await callback(HttpStatus.notFound, {"message": "Alarmierung nicht gefunden"});
+      await callback(HttpStatus.notFound, {"message": "Alarmierung nicht gefunden."});
       return;
     }
 
@@ -288,6 +288,6 @@ abstract class AlarmInterface {
 
     await alarm.sendFCMInformation();
 
-    await callback(HttpStatus.ok, {"message": "Alarmierung erfolgreich erstellt"});
+    await callback(HttpStatus.ok, {"message": "Alarmierung erfolgreich erstellt."});
   }
 }
