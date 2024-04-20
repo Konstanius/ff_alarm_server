@@ -76,7 +76,7 @@ abstract class AlarmInterface {
     String note = data["note"];
 
     if (stationId == null && responseType != AlarmResponseType.notReady) {
-      await callback(HttpStatus.badRequest, {"message": "Du musst eine Station angeben, wenn du eine Antwort gibst."});
+      await callback(HttpStatus.badRequest, {"message": "Du musst eine Wache angeben, wenn du eine Antwort gibst."});
       return;
     }
 

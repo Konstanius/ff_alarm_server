@@ -104,7 +104,7 @@ abstract class PersonInterface {
 
     Station? station = await Station.getById(stationId);
     if (station == null) {
-      await callback(HttpStatus.forbidden, {"message": "Du bist nicht berechtigt, auf diese Wache zuzugreifen."});
+      await callback(HttpStatus.notFound, {"message": "Die Wache konnte nicht gefunden werden"});
       return;
     }
 
@@ -116,7 +116,6 @@ abstract class PersonInterface {
     String firstName = data["firstName"].trim();
     String lastName = data["lastName"].trim();
     DateTime birthday = DateTime.fromMillisecondsSinceEpoch(data["birthday"]);
-    List<dynamic> allowedUnits = data["allowedUnits"];
     List<dynamic> qualifications = data["qualifications"];
 
     if (firstName.isEmpty || lastName.isEmpty) {
@@ -150,7 +149,6 @@ abstract class PersonInterface {
     var stationUnits = await Unit.getByStationId(stationId);
     Set<int> stationUnitIds = {};
     for (var unit in stationUnits) {
-      if (!allowedUnits.contains(unit.id)) continue;
       stationUnitIds.add(unit.id);
     }
 
@@ -200,10 +198,7 @@ abstract class PersonInterface {
     await invokeSDK(
       false,
       'fcmTest',
-      {
-        'startTime': DateTime.now().millisecondsSinceEpoch,
-        'server': Config.config['server'],
-      },
+      {'server': Config.config['server']},
       androidTokens: isAndroid ? {fcmToken} : {},
       iosTokens: isAndroid ? {} : {fcmToken},
     );

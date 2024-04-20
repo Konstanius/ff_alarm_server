@@ -20,6 +20,8 @@ abstract class AuthMethod {
     "personPing": PersonInterface.ping,
     "unitGetAll": UnitInterface.getAll,
     "unitGetForStation": UnitInterface.getForStationAsAdmin,
+    "unitRemovePerson": UnitInterface.removePerson,
+    "unitAddPerson": UnitInterface.addPerson,
     "alarmGetAll": AlarmInterface.getAll,
     "alarmGet": AlarmInterface.fetchSingle,
     "alarmSetResponse": AlarmInterface.setResponse,

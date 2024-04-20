@@ -18,7 +18,7 @@ abstract class GuestInterface {
 
     List<String> keyInfo = person.registrationKey.split(":");
     if (keyInfo.length != 2) {
-      await callback(HttpStatus.forbidden, {"message": "Ungültiger Registrierungsschlüssel"});
+      await callback(HttpStatus.badRequest, {"message": "Ungültiger Registrierungsschlüssel"});
       return;
     }
 

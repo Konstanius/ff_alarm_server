@@ -45,7 +45,7 @@ abstract class UnitInterface {
 
     Station? station = await Station.getById(stationId);
     if (station == null) {
-      await callback(HttpStatus.forbidden, {"message": "Du bist nicht berechtigt, auf diese Wache zuzugreifen."});
+      await callback(HttpStatus.notFound, {"message": "Die Wache konnte nicht gefunden werden"});
       return;
     }
 
@@ -57,5 +57,88 @@ abstract class UnitInterface {
     List<Unit> units = await Unit.getByStationId(stationId);
 
     await callback(HttpStatus.ok, {"units": units.map((e) => e.toJson()).toList()});
+  }
+
+  static Future<void> removePerson(Person person, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
+    int unitId = data["unitId"];
+    int personId = data["personId"];
+
+    Unit? unit = await Unit.getById(unitId);
+    if (unit == null) {
+      await callback(HttpStatus.notFound, {"message": "Die Einheit konnte nicht gefunden werden"});
+      return;
+    }
+
+    Station? station = await Station.getById(unit.stationId);
+    if (station == null) {
+      await callback(HttpStatus.notFound, {"message": "Die Wache konnte nicht gefunden werden"});
+      return;
+    }
+
+    if (!station.adminPersons.contains(person.id)) {
+      await callback(HttpStatus.forbidden, {"message": "Du bist nicht berechtigt, auf diese Wache zuzugreifen."});
+      return;
+    }
+
+    Person? personToRemove = await Person.getById(personId);
+    if (personToRemove == null) {
+      await callback(HttpStatus.notFound, {"message": "Die Person konnte nicht gefunden werden"});
+      return;
+    }
+
+    if (!personToRemove.allowedUnits.contains(unitId)) {
+      await callback(HttpStatus.notFound, {"message": "Die Person ist dieser Einheit nicht zugeordnet"});
+      return;
+    }
+
+    personToRemove.allowedUnits.remove(unitId);
+    personToRemove.allowedUnits.add(-unitId);
+    await Person.update(personToRemove);
+
+    await callback(HttpStatus.ok, personToRemove.toJson());
+  }
+
+  static Future<void> addPerson(Person person, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
+    int unitId = data["unitId"];
+    int personId = data["personId"];
+
+    Unit? unit = await Unit.getById(unitId);
+    if (unit == null) {
+      await callback(HttpStatus.notFound, {"message": "Die Einheit konnte nicht gefunden werden"});
+      return;
+    }
+
+    Station? station = await Station.getById(unit.stationId);
+    if (station == null) {
+      await callback(HttpStatus.notFound, {"message": "Die Wache konnte nicht gefunden werden"});
+      return;
+    }
+
+    if (!station.adminPersons.contains(person.id)) {
+      await callback(HttpStatus.forbidden, {"message": "Du bist nicht berechtigt, auf diese Wache zuzugreifen."});
+      return;
+    }
+
+    if (!station.persons.contains(personId)) {
+      await callback(HttpStatus.notFound, {"message": "Die Person ist nicht auf der Wache dieser Einheit eingetragen."});
+      return;
+    }
+
+    Person? personToAdd = await Person.getById(personId);
+    if (personToAdd == null) {
+      await callback(HttpStatus.notFound, {"message": "Die Person konnte nicht gefunden werden"});
+      return;
+    }
+
+    if (personToAdd.allowedUnits.contains(unitId)) {
+      await callback(HttpStatus.notFound, {"message": "Die Person ist dieser Einheit bereits zugeordnet"});
+      return;
+    }
+
+    personToAdd.allowedUnits.add(unitId);
+    personToAdd.allowedUnits.remove(-unitId);
+    await Person.update(personToAdd);
+
+    await callback(HttpStatus.ok, personToAdd.toJson());
   }
 }
