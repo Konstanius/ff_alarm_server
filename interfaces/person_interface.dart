@@ -179,7 +179,7 @@ abstract class PersonInterface {
     Map<String, dynamic> keyData = {
       "d": Config.config["server"],
       "a": key,
-      "p": person.id,
+      "p": newPerson.id,
     };
 
     String jsonString = jsonEncode(keyData);
@@ -216,7 +216,7 @@ abstract class PersonInterface {
     Map<String, dynamic> keyData = {
       "d": Config.config["server"],
       "a": key,
-      "p": person.id,
+      "p": personId,
     };
 
     String jsonString = jsonEncode(keyData);
