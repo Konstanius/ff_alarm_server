@@ -20,6 +20,7 @@ abstract class AuthMethod {
     "personGenerateRegistration": PersonInterface.generateRegistration,
     "personUpdate": PersonInterface.update,
     "personPing": PersonInterface.ping,
+    "personSearch": PersonInterface.search,
     "unitGetAll": UnitInterface.getAll,
     "unitGetForStation": UnitInterface.getForStationAsAdmin,
     "unitRemovePerson": UnitInterface.removePerson,

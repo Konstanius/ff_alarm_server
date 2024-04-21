@@ -312,4 +312,31 @@ abstract class PersonInterface {
 
     await callback(HttpStatus.ok, {});
   }
+
+  static Future<void> search(Person person, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
+    int birthday = data["birthday"];
+    String firstName = data["firstName"].trim();
+    String lastName = data["lastName"].trim();
+
+    var stations = await Station.getForPerson(person.id);
+    if(!stations.any((element) => element.adminPersons.contains(person.id))) {
+      await callback(HttpStatus.forbidden, {"message": "Du bist nicht berechtigt, Personen zu suchen."});
+      return;
+    }
+
+    DateTime birthdayDate = DateTime.fromMillisecondsSinceEpoch(birthday);
+    List<Person> personsByCriteria = await Person.getAllByCriteria(birthday: birthdayDate, firstName: firstName, lastName: lastName);
+    List<Person> personsByNameExactMatch = await Person.getByName(firstName: firstName, lastName: lastName);
+
+    Map<String, dynamic> response = {};
+    for (Person person in personsByCriteria) {
+      response[person.id.toString()] = person.toJson();
+    }
+    for (Person person in personsByNameExactMatch) {
+      if (response.containsKey(person.id.toString())) continue;
+      response[person.id.toString()] = person.toJson();
+    }
+
+    await callback(HttpStatus.ok, response);
+  }
 }

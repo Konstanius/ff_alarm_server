@@ -154,6 +154,29 @@ class Person {
     return result.map((e) => Person.fromDatabase(e.toColumnMap())).toList();
   }
 
+  static Future<List<Person>> getAllByCriteria({required DateTime birthday, required String firstName, required String lastName}) async {
+    var result = await Database.connection.query(
+      "SELECT * FROM persons WHERE birthday = @birthday AND similarity(firstname, @firstname) > 0.8 AND similarity(lastname, @lastname) > 0.8;",
+      substitutionValues: {
+        "birthday": birthday.millisecondsSinceEpoch,
+        "firstname": firstName,
+        "lastname": lastName,
+      },
+    );
+    return result.map((e) => Person.fromDatabase(e.toColumnMap())).toList();
+  }
+
+  static Future<List<Person>> getByName({required String firstName, required String lastName}) async {
+    var result = await Database.connection.query(
+      "SELECT * FROM persons WHERE firstname = @firstname AND lastname = @lastname;",
+      substitutionValues: {
+        "firstname": firstName,
+        "lastname": lastName,
+      },
+    );
+    return result.map((e) => Person.fromDatabase(e.toColumnMap())).toList();
+  }
+
   static Future<void> insert(Person person) async {
     person.updated = DateTime.now();
     var result = await Database.connection.query(
