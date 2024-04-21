@@ -41,6 +41,8 @@ abstract class Database {
 
     await connection.query("SELECT 1");
 
+    await connection.query("CREATE EXTENSION IF NOT EXISTS pg_trgm");
+
     await Station.initialize();
     await Unit.initialize();
     await Person.initialize();
