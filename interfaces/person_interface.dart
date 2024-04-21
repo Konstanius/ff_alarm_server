@@ -190,6 +190,43 @@ abstract class PersonInterface {
     await callback(HttpStatus.ok, {"key": base64String, "person": newPerson.toJson()});
   }
 
+  static Future<void> generateRegistration(Person person, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
+    int personId = data["personId"];
+    Person? personToRegister = await Person.getById(personId);
+    if (personToRegister == null) {
+      await callback(HttpStatus.notFound, {"message": "Die Person konnte nicht gefunden werden."});
+      return;
+    }
+
+    List<Station> stations = await Station.getForPerson(person.id);
+    if (!(stations.any((element) => element.persons.contains(personToRegister.id) && element.adminPersons.contains(person.id)))) {
+      await callback(HttpStatus.forbidden, {"message": "Du bist nicht berechtigt, auf diese Person zuzugreifen."});
+      return;
+    }
+
+    String key = HashUtils.generateRandomKey();
+    String hash = await HashUtils.generateHash(key);
+
+    DateTime now = DateTime.now();
+    DateTime expires = now.add(const Duration(days: 1));
+
+    personToRegister.registrationKey = '$hash:${expires.millisecondsSinceEpoch}';
+    await Person.update(personToRegister);
+
+    Map<String, dynamic> keyData = {
+      "d": Config.config["server"],
+      "a": key,
+      "p": person.id,
+    };
+
+    String jsonString = jsonEncode(keyData);
+    final enCodedJson = utf8.encode(jsonString);
+    final gZipJson = gzip.encode(enCodedJson);
+    String base64String = base64.encode(gZipJson);
+
+    await callback(HttpStatus.ok, {"key": base64String});
+  }
+
   static Future<void> update(Person person, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
     int stationId = data["stationId"];
     Station? station = await Station.getById(stationId);
