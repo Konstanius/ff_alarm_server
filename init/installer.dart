@@ -5,6 +5,7 @@ import 'dart:math';
 import 'package:qr_terminal/qr_terminal.dart';
 
 import '../utils/console.dart';
+import '../utils/generic.dart';
 import 'otp.dart';
 
 void main() async {
@@ -187,11 +188,13 @@ Future<void> install() async {
     secret += String.fromCharCode(random.nextInt(26) + 65);
   }
   String qrContent = "otpauth://totp/FF%20Alarm%20Administrator:${config['admin_name']}?secret=$secret&issuer=FF%20Alarm%20${config['nginx_host']}";
-  config['admin_2fa'] = qrContent;
+  config['admin_2fa'] = CryptoUtils.encryptAES(secret, config['admin_password']!);
   outln('TOTP 2FA secret: $secret', Color.verbose);
   outln('TOTP 2FA access code: $qrContent', Color.verbose);
   outln('Scan the below QR code on your phone using Google Authenticator or similar. MAKE SURE TO NOT LOOSE THIS CODE!', Color.verbose);
   generate(qrContent, small: true);
+
+  config['admin_password'] = await HashUtils.generateHash(config['admin_password']!);
 
   outln('Please enter the 6 digit code from your 2FA app:', Color.verbose);
   while (true) {
@@ -307,8 +310,8 @@ Future<void> install() async {
     "admin": [
       {
         "name": config['admin_name']!,
-        "password": config['admin_password']!,
-        "2fa": config['admin_2fa']!,
+        "password": await HashUtils.generateHash(config['admin_password']!),
+        "2fa": CryptoUtils.encryptAES(config['admin_2fa']!, config['admin_password']!),
       }
     ],
     "server": "${config['nginx_ssl'] == 'y' ? 's' : ''}://${config['nginx_host']}:${config['nginx_port']}",
@@ -373,18 +376,8 @@ Future<void> install() async {
   // docker start ff_alarm_nginx
   // docker cp resources/nginx.conf ff_alarm_nginx:/etc/nginx/nginx.conf
   // docker restart ff_alarm_nginx
-  result = await Process.run("docker", [
-    "create",
-    "--hostname",
-    "ff_alarm_nginx",
-    "--name",
-    "ff_alarm_nginx",
-    "--network",
-    "ff_alarm_network",
-    "-p",
-    "${config['nginx_port']}:${config['nginx_port']}",
-    "nginx"
-  ]);
+  result = await Process.run(
+      "docker", ["create", "--hostname", "ff_alarm_nginx", "--name", "ff_alarm_nginx", "--network", "ff_alarm_network", "-p", "${config['nginx_port']}:${config['nginx_port']}", "nginx"]);
   if (result.exitCode != 0) {
     outln("Failed to create the Nginx container.", Color.error);
     outln("Error: ${result.stderr}", Color.error);

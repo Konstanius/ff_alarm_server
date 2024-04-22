@@ -156,7 +156,7 @@ class Person {
 
   static Future<List<Person>> getAllByCriteria({required DateTime birthday, required String firstName, required String lastName}) async {
     var result = await Database.connection.query(
-      "SELECT * FROM persons WHERE birthday = @birthday AND similarity(firstname, @firstname) > 0.8 AND similarity(lastname, @lastname) > 0.8;",
+      "SELECT * FROM persons WHERE birthday = @birthday AND similarity(firstname, @firstname) > 0.4 AND similarity(lastname, @lastname) > 0.4;",
       substitutionValues: {
         "birthday": birthday.millisecondsSinceEpoch,
         "firstname": firstName,

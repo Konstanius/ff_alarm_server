@@ -7,7 +7,8 @@ import '../models/backend/session.dart';
 import '../models/person.dart';
 import '../utils/console.dart';
 import '../utils/generic.dart';
-import 'auth_method.dart';
+import 'app_methods.dart';
+import 'web_methods.dart';
 
 Future<void> initServer() async {
   startRealtimeWatchThread();
@@ -49,7 +50,12 @@ Future<void> initServer() async {
         return;
       }
 
-      if (uri.pathSegments[0] != 'api' && uri.pathSegments[0] != 'realtime') {
+      if (uri.pathSegments[0] == 'realtime') {
+        await handleRealtime(request);
+        return;
+      }
+
+      if (uri.pathSegments[0] != 'api') {
         request.response.statusCode = HttpStatus.notFound;
         await request.response.flush();
         await request.response.close();
@@ -57,11 +63,6 @@ Future<void> initServer() async {
       }
 
       String keyword = uri.pathSegments[1];
-
-      if (uri.pathSegments[0] == 'realtime') {
-        await handleRealtime(request);
-        return;
-      }
 
       Future<void> callback(int statusCode, Map<String, dynamic> response) async {
         request.response.statusCode = statusCode;
@@ -88,7 +89,7 @@ Future<void> initServer() async {
           return;
         }
 
-        var method = AuthMethod.guestMethods[keyword];
+        var method = AuthMethods.guestMethods[keyword];
         if (method == null) {
           await callback(HttpStatus.notFound, {"message": "Die angeforderte Resource wurde nicht gefunden."});
           return;
@@ -97,7 +98,7 @@ Future<void> initServer() async {
         try {
           await method(data!, callback);
         } on RequestException catch (e) {
-          callback(e.statusCode, {"message": e.message});
+          await callback(e.statusCode, {"message": e.message});
         } catch (e, s) {
           request.response.statusCode = HttpStatus.internalServerError;
           outln("Internal server error: $e\n$s", Color.error);
@@ -135,20 +136,60 @@ Future<void> initServer() async {
       }
 
       if (authParts.first == "admin") {
-        /// TODO implement API authentication from admin panel
-        /// Interfaces that are required:
-        /// - unitCreate
-        /// - unitUpdate
-        /// - unitDelete
-        /// - unitList
-        /// - stationCreate
-        /// - stationUpdate
-        /// - stationDelete
-        /// - stationList
-        /// - personCreate
-        /// - personUpdate
-        /// - personDelete
-        /// - personList
+        String info = authParts[0];
+        if (info.contains(':')) {
+          List<String> infoParts = info.split(':');
+          if (infoParts.length != 3) {
+            await callback(HttpStatus.badRequest, {"message": "Die Anfrage konnte nicht verarbeitet werden."});
+            return;
+          }
+
+          String username = utf8.decode(base64.decode(infoParts[0]));
+          String password = utf8.decode(base64.decode(infoParts[1]));
+          String otpCode = utf8.decode(base64.decode(infoParts[2]));
+
+          WebSession? session = await WebSession.createSession(username: username, password: password, otpCode: otpCode);
+          if (session == null) {
+            await callback(HttpStatus.unauthorized, {"message": "Ungültige Zugangsdaten."});
+            return;
+          }
+
+          await callback(HttpStatus.ok, {"token": session.token});
+          return;
+        } else {
+          WebSession? session = WebSession.getSession(authParts[0]);
+          if (session == null) {
+            await callback(HttpStatus.unauthorized, {"message": "Kein Zugriff auf diese Resource."});
+            return;
+          }
+
+          var method = WebMethods.methods[keyword];
+          if (method == null) {
+            await callback(HttpStatus.notFound, {"message": "Die angeforderte Resource wurde nicht gefunden."});
+            return;
+          }
+
+          Map<String, dynamic>? data;
+          try {
+            String boundRequest = await utf8.decoder.bind(request).join();
+            data = json.decode(boundRequest);
+          } catch (e) {
+            await callback(HttpStatus.badRequest, {"message": "Die Anfrage konnte nicht verarbeitet werden."});
+            return;
+          }
+
+          try {
+            await method(session, data!, callback);
+          } on RequestException catch (e) {
+            await callback(e.statusCode, {"message": e.message});
+          } catch (e, s) {
+            request.response.statusCode = HttpStatus.internalServerError;
+            outln("Internal server error: $e\n$s", Color.error);
+            request.response.add(utf8.encode(json.encode({"message": "Ein interner Serverfehler ist aufgetreten."})));
+            await request.response.flush();
+            await request.response.close();
+          }
+        }
         return;
       }
 
@@ -187,7 +228,7 @@ Future<void> initServer() async {
         return;
       }
 
-      var method = AuthMethod.authMethods[keyword];
+      var method = AuthMethods.authMethods[keyword];
       if (method == null) {
         await callback(HttpStatus.notFound, {"message": "Die angeforderte Resource wurde nicht gefunden."});
         return;
@@ -216,7 +257,7 @@ Future<void> initServer() async {
       try {
         await method(person, data!, callback);
       } on RequestException catch (e) {
-        callback(e.statusCode, {"message": e.message});
+        await callback(e.statusCode, {"message": e.message});
       } catch (e, s) {
         request.response.statusCode = HttpStatus.internalServerError;
         outln("Internal server error: $e\n$s", Color.error);

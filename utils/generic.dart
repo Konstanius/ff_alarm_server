@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:crypto/crypto.dart';
 import 'package:dargon2/dargon2.dart';
+import 'package:encrypt/encrypt.dart';
 
 class RequestException {
   int statusCode;
@@ -77,5 +78,27 @@ abstract class HashUtils {
     var random = Random.secure();
     var values = List<int>.generate(_randomKeyLength, (i) => random.nextInt(256));
     return base64Url.encode(values);
+  }
+}
+
+abstract class CryptoUtils {
+  static String generateKeyFromPassword(String password) {
+    return HashUtils.lightHash(password).substring(0, 32);
+  }
+
+  static get iv => IV.fromBase64("IBYT8ieY6J+EZmKf62hQkg==");
+
+  static String encryptAES(String data, String key) {
+    String properKey = generateKeyFromPassword(key);
+    Encrypter crypt = Encrypter(AES(Key.fromUtf8(properKey)));
+    Encrypted encrypted = crypt.encrypt(data, iv: iv);
+    return encrypted.base64;
+  }
+
+  static String decryptAES(String data, String key) {
+    String properKey = generateKeyFromPassword(key);
+    Encrypter crypt = Encrypter(AES(Key.fromUtf8(properKey)));
+    Encrypted encrypted = Encrypted.fromBase64(data);
+    return crypt.decrypt(encrypted, iv: iv);
   }
 }
