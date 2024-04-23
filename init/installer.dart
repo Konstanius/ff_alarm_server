@@ -475,9 +475,8 @@ Future<void> install() async {
   outln("Nginx server setup successful!", Color.success);
 
   String encodedUser = utf8.encode(base64.encode(utf8.encode(config['admin_name']!))).toString();
-  String encodedPass = utf8.encode(base64.encode(utf8.encode(password))).toString();
   outln(
-    "Please open the web panel at http${config['nginx_ssl'] == 'y' ? 's' : ''}://${config['nginx_host']}:${config['nginx_port']}/panel/?user=$encodedUser&pass=$encodedPass to login and complete the setup.",
+    "Please open the web panel at http${config['nginx_ssl'] == 'y' ? 's' : ''}://${config['nginx_host']}:${config['nginx_port']}/panel/?user=$encodedUser to login and complete the setup.",
     Color.info,
   );
 }
