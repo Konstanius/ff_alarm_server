@@ -157,7 +157,7 @@ Future<void> initServer() async {
           await callback(HttpStatus.ok, {"token": session.token});
           return;
         } else {
-          WebSession? session = WebSession.getSession(authParts[0]);
+          WebSession? session = WebSession.getSession(authParts[1]);
           if (session == null) {
             await callback(HttpStatus.unauthorized, {"message": "Kein Zugriff auf diese Resource."});
             return;

@@ -42,13 +42,10 @@ class WebSession {
     List<WebSession> toRemove = [];
     WebSession? toReturn;
     DateTime now = DateTime.now();
-    print(sessions.map((e) => e.token));
     for (WebSession session in sessions) {
       if (session.lastActive.isBefore(now.subtract(enabledDuration))) {
-        print("Session ${session.token} expired");
         toRemove.add(session);
       } else if (session.token == token) {
-        print("Session ${session.token} found");
         session.lastActive = now;
         toReturn = session;
         break;
