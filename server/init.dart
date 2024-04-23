@@ -136,7 +136,7 @@ Future<void> initServer() async {
       }
 
       if (authParts.first == "admin") {
-        String info = authParts[0];
+        String info = authParts[1];
         if (info.contains(':')) {
           List<String> infoParts = info.split(':');
           if (infoParts.length != 3) {

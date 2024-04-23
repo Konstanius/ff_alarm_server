@@ -194,7 +194,8 @@ Future<void> install() async {
   outln('Scan the below QR code on your phone using Google Authenticator or similar. MAKE SURE TO NOT LOOSE THIS CODE!', Color.verbose);
   generate(qrContent, small: true);
 
-  config['admin_password'] = await HashUtils.generateHash(config['admin_password']!);
+  String password = config['admin_password']!;
+  config['admin_password'] = await HashUtils.generateHash(password);
 
   outln('Please enter the 6 digit code from your 2FA app:', Color.verbose);
   while (true) {
@@ -255,7 +256,7 @@ Future<void> install() async {
     "POSTGRES_PASSWORD=${config['database_password']}",
     "-e",
     "POSTGRES_DB=${config['database_database']}",
-    "-p",
+    "-p", // TODO Possible security risk
     "${config['database_port']}:${config['database_port']}",
     "postgres"
   ]);
@@ -418,6 +419,21 @@ Future<void> install() async {
     outln("You might want to set up an automated renewal process using certbot or similar.", Color.warn);
   }
 
+  // Check if panel is downloaded
+  if (!Directory("panel").existsSync() || Directory("panel").listSync().isEmpty) {
+    outln("Downloading the web panel...", Color.verbose);
+    result = await Process.run("git", [
+      "clone",
+      "https://github.com/Konstanius/ff_alarm_panel.git",
+      "panel",
+    ]); // TODO this downloads the wrong version, instead download from FF-Alarm/panel/ submodule, or use a release (same release as panel)
+    if (result.exitCode != 0) {
+      outln("Failed to download the web panel.", Color.error);
+      outln("Error: ${result.stderr}", Color.error);
+      return;
+    }
+  }
+
   // build the panel
   Directory.current = "${Directory.current.path}/panel";
   result = await Process.run("flutter", ["pub", "get"]);
@@ -458,8 +474,10 @@ Future<void> install() async {
 
   outln("Nginx server setup successful!", Color.success);
 
+  String encodedUser = utf8.encode(base64.encode(utf8.encode(config['admin_name']!))).toString();
+  String encodedPass = utf8.encode(base64.encode(utf8.encode(password))).toString();
   outln(
-    "Please open the web panel at http${config['nginx_ssl'] == 'y' ? 's' : ''}://${config['nginx_host']}:${config['nginx_port']}/panel/?user=${config['admin_name']}&pass=${config['admin_password']} to login and complete the setup.",
+    "Please open the web panel at http${config['nginx_ssl'] == 'y' ? 's' : ''}://${config['nginx_host']}:${config['nginx_port']}/panel/?user=$encodedUser&pass=$encodedPass to login and complete the setup.",
     Color.info,
   );
 }
