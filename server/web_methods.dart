@@ -1,10 +1,12 @@
 import '../init/otp.dart';
+import '../interfaces/web_interface.dart';
 import '../utils/config.dart';
 import '../utils/console.dart';
 import '../utils/generic.dart';
 
 abstract class WebMethods {
   static const Map<String, Future<void> Function(WebSession session, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback)?> methods = {
+    "ping": WebInterface.ping,
     "adminManage": null, // TODO
     "systemDiagnostics": null, // TODO
     "unitList": null, // TODO
