@@ -57,7 +57,7 @@ class WebSession {
   }
 
   static Future<WebSession?> createSession({required String username, required String password, required String otpCode}) async {
-    List<Map<String, dynamic>> admins = Config.config["admins"];
+    List<dynamic> admins = Config.config["admins"];
     for (Map<String, dynamic> admin in admins) {
       String name = admin["name"];
       if (name != username) continue;

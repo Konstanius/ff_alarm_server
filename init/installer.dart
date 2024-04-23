@@ -308,7 +308,7 @@ Future<void> install() async {
       "password": config['database_password']!,
       "database": config['database_database']!,
     },
-    "admin": [
+    "admins": [
       {
         "name": config['admin_name']!,
         "password": await HashUtils.generateHash(config['admin_password']!),
