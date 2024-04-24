@@ -7,20 +7,27 @@ import '../utils/generic.dart';
 abstract class WebMethods {
   static const Map<String, Future<void> Function(WebSession session, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback)?> methods = {
     "ping": WebInterface.ping,
-    "adminManage": null, // TODO
-    "systemDiagnostics": null, // TODO
-    "unitList": null, // TODO
-    "unitCreate": null, // TODO
-    "unitUpdate": null, // TODO
-    "unitDelete": null, // TODO
-    "stationList": null, // TODO
-    "stationCreate": null, // TODO
-    "stationUpdate": null, // TODO
-    "stationDelete": null, // TODO
-    "personList": null, // TODO
-    "personCreate": null, // TODO
-    "personUpdate": null, // TODO
-    "personDelete": null, // TODO
+    "adminManage": WebInterface.adminManage,
+    "systemDiagnostics": WebInterface.systemDiagnostics,
+    "logsList": WebInterface.logsList,
+    "logsGet": WebInterface.logsGet,
+    "auditLogsGet": WebInterface.auditLogsGet,
+    "unitList": WebInterface.unitList,
+    "unitCreate": WebInterface.unitCreate,
+    "unitUpdate": WebInterface.unitUpdate,
+    "unitDelete": WebInterface.unitDelete,
+    "stationList": WebInterface.stationList,
+    "stationCreate": WebInterface.stationCreate,
+    "stationUpdate": WebInterface.stationUpdate,
+    "stationDelete": WebInterface.stationDelete,
+    "personList": WebInterface.personList,
+    "personCreate": WebInterface.personCreate,
+    "personUpdate": WebInterface.personUpdate,
+    "personDelete": WebInterface.personDelete,
+    "alarmList": WebInterface.alarmList,
+    "alarmCreate": WebInterface.alarmCreate,
+    "alarmUpdate": WebInterface.alarmUpdate,
+    "alarmDelete": WebInterface.alarmDelete,
   };
 }
 
