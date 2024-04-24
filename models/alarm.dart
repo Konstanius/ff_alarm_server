@@ -256,7 +256,7 @@ class Alarm {
 
   Future<void> sendFCMInformation() async {
     var involvedPersonIds = await getInvolvedPersonIds();
-    var persons = await Person.getByIds(involvedPersonIds.toList());
+    var persons = await Person.getByIds(involvedPersonIds);
 
     var units = await getUnits();
     Map<int, Unit> unitMap = {};
@@ -264,7 +264,7 @@ class Alarm {
       unitMap[unit.id] = unit;
     }
 
-    var stations = await Station.getByIds(units.map((e) => e.stationId).toSet());
+    var stations = await Station.getByIds(units.map((e) => e.stationId));
     Map<int, Station> stationMap = {};
     for (var station in stations) {
       stationMap[station.id] = station;

@@ -52,7 +52,7 @@ abstract class StationInterface {
       personIds.addAll(station.persons);
     }
 
-    var persons = await Person.getByIds(personIds.toList());
+    var persons = await Person.getByIds(personIds);
 
     DateTime now = DateTime.now();
     int day = now.weekday;

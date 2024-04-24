@@ -144,8 +144,8 @@ class Person {
     return Person.fromDatabase(result[0].toColumnMap());
   }
 
-  static Future<List<Person>> getByIds(List<int> ids) async {
-    var result = await Database.connection.query("SELECT * FROM persons WHERE id = ANY(@ids);", substitutionValues: {"ids": ids});
+  static Future<List<Person>> getByIds(Iterable<int> ids) async {
+    var result = await Database.connection.query("SELECT * FROM persons WHERE id = ANY(@ids);", substitutionValues: {"ids": ids.toSet().toList()});
     return result.map((e) => Person.fromDatabase(e.toColumnMap())).toList();
   }
 

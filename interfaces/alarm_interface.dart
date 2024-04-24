@@ -117,7 +117,7 @@ abstract class AlarmInterface {
       }
 
       var units = await Unit.getByIds(alarmUnitsForPerson);
-      var stations = await Station.getByIds(units.map((e) => e.stationId).toSet());
+      var stations = await Station.getByIds(units.map((e) => e.stationId));
       stations.removeWhere((element) => !element.persons.contains(person.id));
 
       for (var station in stations) {

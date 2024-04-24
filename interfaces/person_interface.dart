@@ -26,7 +26,7 @@ abstract class PersonInterface {
       stationPersons.addAll(station.persons);
     }
 
-    List<Person> persons = await Person.getByIds(stationPersons.toList());
+    List<Person> persons = await Person.getByIds(stationPersons);
     List<Map<String, dynamic>> response = [];
     Set<int> canSee = {person.id};
 

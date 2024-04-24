@@ -208,7 +208,7 @@ class Unit {
     if (units.isEmpty) return [];
     var result = await Database.connection.query(
       "SELECT * FROM units WHERE id = ANY(@units);",
-      substitutionValues: {"units": units.toList()},
+      substitutionValues: {"units": units.toSet().toList()},
     );
     return result.map((e) => Unit.fromDatabase(e.toColumnMap())).toList();
   }

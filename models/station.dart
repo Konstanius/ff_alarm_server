@@ -172,7 +172,7 @@ class Station {
     if (involvedStationIds.isEmpty) return [];
     var result = await Database.connection.query(
       "SELECT * FROM stations WHERE id = ANY(@ids);",
-      substitutionValues: {"ids": involvedStationIds.toList()},
+      substitutionValues: {"ids": involvedStationIds.toSet().toList()},
     );
     return result.map((e) => Station.fromDatabase(e.toColumnMap())).toList();
   }
