@@ -1,10 +1,13 @@
 import 'dart:io';
 
+import 'package:dio/dio.dart';
+
 import '../models/alarm.dart';
 import '../models/person.dart';
 import '../models/station.dart';
 import '../models/unit.dart';
 import '../server/web_methods.dart';
+import '../utils/console.dart';
 
 abstract class WebInterface {
   static Future<void> ping(WebSession session, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
@@ -194,5 +197,59 @@ abstract class WebInterface {
   static Future<void> alarmDelete(WebSession session, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
     // TODO
     await callback(HttpStatus.ok, {});
+  }
+
+  static Future<void> getCoordinates(WebSession session, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
+    String address = data["address"];
+
+    try {
+      String escapedAddress = Uri.encodeComponent(address);
+      String url = 'https://nominatim.openstreetmap.org/search?q=$escapedAddress&format=json';
+      Dio dio = Dio(BaseOptions(connectTimeout: const Duration(seconds: 5), receiveTimeout: const Duration(seconds: 5)));
+      Response response = await dio.get(url);
+      if (response.statusCode == 200) {
+        List<dynamic> data = response.data;
+        if (data.isNotEmpty) {
+          String lat = data[0]['lat'];
+          String lon = data[0]['lon'];
+          await callback(HttpStatus.ok, {"lat": lat, "lon": lon});
+        } else {
+          await callback(HttpStatus.notFound, {"message": "Adresse nicht gefunden."});
+        }
+        return;
+      }
+      await callback(HttpStatus.internalServerError, {"message": "Fehler beim Abrufen der Koordinaten."});
+    } catch (e, s) {
+      outln(e.toString(), Color.error);
+      outln(s.toString(), Color.error);
+      await callback(HttpStatus.internalServerError, {"message": "Fehler beim Abrufen der Koordinaten."});
+    }
+  }
+
+  static Future<void> getAddress(WebSession session, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
+    double lat = data["lat"];
+    double lon = data["lon"];
+
+    try {
+      String url = 'https://nominatim.openstreetmap.org/reverse?lat=$lat&lon=$lon&format=json';
+      Dio dio = Dio(BaseOptions(connectTimeout: const Duration(seconds: 5), receiveTimeout: const Duration(seconds: 5)));
+      Response response = await dio.get(url);
+      if (response.statusCode == 200) {
+        Map<String, dynamic> data = response.data;
+        if (data.isNotEmpty) {
+          String value = data['display_name'];
+          await callback(HttpStatus.ok, {"address": value});
+        } else {
+          await callback(HttpStatus.notFound, {"message": "Adresse nicht gefunden."});
+        }
+        return;
+      }
+
+      await callback(HttpStatus.internalServerError, {"message": "Fehler beim Abrufen der Adresse."});
+    } catch (e, s) {
+      outln(e.toString(), Color.error);
+      outln(s.toString(), Color.error);
+      await callback(HttpStatus.internalServerError, {"message": "Fehler beim Abrufen der Adresse."});
+    }
   }
 }
