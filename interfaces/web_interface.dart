@@ -212,7 +212,9 @@ abstract class WebInterface {
         if (data.isNotEmpty) {
           String lat = data[0]['lat'];
           String lon = data[0]['lon'];
-          await callback(HttpStatus.ok, {"lat": lat, "lon": lon});
+          double latD = double.parse(lat);
+          double lonD = double.parse(lon);
+          await callback(HttpStatus.ok, {"lat": latD, "lon": lonD});
         } else {
           await callback(HttpStatus.notFound, {"message": "Adresse nicht gefunden."});
         }
