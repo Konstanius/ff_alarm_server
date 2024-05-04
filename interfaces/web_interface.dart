@@ -239,8 +239,26 @@ abstract class WebInterface {
       if (response.statusCode == 200) {
         Map<String, dynamic> data = response.data;
         if (data.isNotEmpty) {
-          String value = data['display_name'];
-          await callback(HttpStatus.ok, {"address": value});
+          String returnData;
+          try {
+            String road = data['address']['road']!;
+            String houseNumber = data['address']['house_number'] ?? '';
+            String postcode = data['address']['postcode']!;
+            String city = data['address']['city']!;
+
+            String address = '$road $houseNumber, $postcode $city';
+            // replace multiple spaces with one
+            address = address.replaceAll(RegExp(r'\s+'), ' ');
+            // remove leading and trailing spaces
+            address = address.trim();
+            // replace ' , ' with ', '
+            address = address.replaceAll(RegExp(r'\s,\s'), ', ');
+
+            returnData = address;
+          } catch (e) {
+            returnData = data['display_name'] ?? '';
+          }
+          await callback(HttpStatus.ok, {"address": returnData});
         } else {
           await callback(HttpStatus.notFound, {"message": "Adresse nicht gefunden."});
         }
