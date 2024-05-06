@@ -105,8 +105,72 @@ abstract class WebInterface {
   }
 
   static Future<void> stationCreate(WebSession session, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
-    // TODO
-    await callback(HttpStatus.ok, {});
+    String name = data["name"];
+    if (name.isEmpty || name.length > 200) {
+      await callback(HttpStatus.badRequest, {"message": "Der Name muss zwischen 1 und 200 Zeichen lang sein."});
+      return;
+    }
+
+    String area = data["area"];
+    if (area.isEmpty || area.length > 200) {
+      await callback(HttpStatus.badRequest, {"message": "Das Gebiet muss zwischen 1 und 200 Zeichen lang sein."});
+      return;
+    }
+
+    String prefix = data["prefix"];
+    if (prefix.isEmpty || prefix.length > 200) {
+      await callback(HttpStatus.badRequest, {"message": "Der Präfix muss zwischen 1 und 200 Zeichen lang sein."});
+      return;
+    }
+
+    int stationNumber = data["stationnumber"];
+
+    String address = data["address"];
+    if (address.isEmpty || address.length > 200) {
+      await callback(HttpStatus.badRequest, {"message": "Die Adresse muss zwischen 1 und 200 Zeichen lang sein."});
+      return;
+    }
+
+    String coordinates = data["coordinates"];
+    if (coordinates.isNotEmpty) {
+      List<String> parts = coordinates.split(",");
+      if (parts.length != 2) {
+        await callback(HttpStatus.badRequest, {"message": "Die Koordinaten müssen im Format 'lat,lon' sein."});
+        return;
+      }
+
+      try {
+        double lat = double.parse(parts[0]);
+        double lon = double.parse(parts[1]);
+
+        if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+          await callback(HttpStatus.badRequest, {"message": "Die Koordinaten müssen im Format 'lat,lon' sein."});
+          return;
+        }
+
+        coordinates = "${lat.toStringAsFixed(5)},${lon.toStringAsFixed(5)}";
+      } catch (e) {
+        await callback(HttpStatus.badRequest, {"message": "Die Koordinaten müssen im Format 'lat,lon' sein."});
+        return;
+      }
+    }
+
+    var station = Station(
+      name: name,
+      area: area,
+      prefix: prefix,
+      stationNumber: stationNumber,
+      address: address,
+      coordinates: coordinates,
+      adminPersons: [],
+      id: 0,
+      persons: [],
+      updated: DateTime.now(),
+    );
+
+    await Station.insert(station);
+
+    await callback(HttpStatus.ok, station.toJson());
   }
 
   static Future<void> stationUpdate(WebSession session, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
