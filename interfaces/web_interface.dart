@@ -90,7 +90,7 @@ abstract class WebInterface {
     int id = data["id"];
     var station = await Station.getById(id);
     if (station == null) {
-      await callback(HttpStatus.notFound, {"message": "Station nicht gefunden."});
+      await callback(HttpStatus.notFound, {"message": "Wache nicht gefunden."});
       return;
     }
 
@@ -110,12 +110,91 @@ abstract class WebInterface {
   }
 
   static Future<void> stationUpdate(WebSession session, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
-    // TODO
+    int id = data["id"];
+    Station? station = await Station.getById(id);
+    if (station == null) {
+      await callback(HttpStatus.notFound, {"message": "Die Wache konnte nicht gefunden werden."});
+      return;
+    }
+
+    String name = data["name"];
+    if (name.isEmpty || name.length > 200) {
+      await callback(HttpStatus.badRequest, {"message": "Der Name muss zwischen 1 und 200 Zeichen lang sein."});
+      return;
+    }
+
+    String area = data["area"];
+    if (area.isEmpty || area.length > 200) {
+      await callback(HttpStatus.badRequest, {"message": "Das Gebiet muss zwischen 1 und 200 Zeichen lang sein."});
+      return;
+    }
+
+    String prefix = data["prefix"];
+    if (prefix.isEmpty || prefix.length > 200) {
+      await callback(HttpStatus.badRequest, {"message": "Der Präfix muss zwischen 1 und 200 Zeichen lang sein."});
+      return;
+    }
+
+    int stationNumber = data["stationnumber"];
+
+    String address = data["address"];
+    if (address.isEmpty || address.length > 200) {
+      await callback(HttpStatus.badRequest, {"message": "Die Adresse muss zwischen 1 und 200 Zeichen lang sein."});
+      return;
+    }
+
+    String coordinates = data["coordinates"];
+    if (coordinates.isNotEmpty) {
+      List<String> parts = coordinates.split(",");
+      if (parts.length != 2) {
+        await callback(HttpStatus.badRequest, {"message": "Die Koordinaten müssen im Format 'lat,lon' sein."});
+        return;
+      }
+
+      try {
+        double lat = double.parse(parts[0]);
+        double lon = double.parse(parts[1]);
+
+        if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+          await callback(HttpStatus.badRequest, {"message": "Die Koordinaten müssen im Format 'lat,lon' sein."});
+          return;
+        }
+
+        coordinates = "${lat.toStringAsFixed(5)},${lon.toStringAsFixed(5)}";
+      } catch (e) {
+        await callback(HttpStatus.badRequest, {"message": "Die Koordinaten müssen im Format 'lat,lon' sein."});
+        return;
+      }
+    }
+
+    station.name = name;
+    station.area = area;
+    station.prefix = prefix;
+    station.stationNumber = stationNumber;
+    station.address = address;
+    station.coordinates = coordinates;
+
+    await Station.update(station);
+
     await callback(HttpStatus.ok, {});
   }
 
   static Future<void> stationDelete(WebSession session, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
-    // TODO
+    int id = data["id"];
+    var station = await Station.getById(id);
+    if (station == null) {
+      await callback(HttpStatus.notFound, {"message": "Wache nicht gefunden."});
+      return;
+    }
+
+    var units = await Unit.getByStationId(station.id);
+    if (units.isNotEmpty) {
+      await callback(HttpStatus.conflict, {"message": "Wache kann nicht gelöscht werden, da dieser noch Einheiten zugeordnet sind."});
+      return;
+    }
+
+    await Station.deleteById(id);
+
     await callback(HttpStatus.ok, {});
   }
 
