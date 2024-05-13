@@ -466,6 +466,20 @@ class AdminReadinessEntry {
 
   @override
   String toString() {
-    return "$personId:$amountStationsReady:${lat ?? 0}:${lon ?? 0}:${timestamp ?? 0}";
+    String lat;
+    if (this.lat == null) {
+      lat = "0";
+    } else {
+      lat = this.lat!.toStringAsFixed(5);
+    }
+
+    String lon;
+    if (this.lon == null) {
+      lon = "0";
+    } else {
+      lon = this.lon!.toStringAsFixed(5);
+    }
+
+    return "$personId:$amountStationsReady:$lat:$lon:${timestamp ?? 0}";
   }
 }
