@@ -8,6 +8,7 @@ import '../models/station.dart';
 import '../models/unit.dart';
 import '../server/web_methods.dart';
 import '../utils/console.dart';
+import 'person_interface.dart';
 
 abstract class WebInterface {
   static Future<void> ping(WebSession session, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
@@ -414,5 +415,57 @@ abstract class WebInterface {
       outln(s.toString(), Color.error);
       await callback(HttpStatus.internalServerError, {"message": "Fehler beim Abrufen der Adresse."});
     }
+  }
+
+  static Future<void> getReadiness(WebSession session, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
+    var persons = await Person.getAll();
+
+    List<AdminReadinessEntry> readiness = [];
+    for (var person in persons) {
+      readiness.add(AdminReadinessEntry.fromPerson(person));
+    }
+
+    await callback(HttpStatus.ok, {"readiness": readiness.map((e) => e.toString()).toList()});
+  }
+}
+
+class AdminReadinessEntry {
+  int personId;
+  double? lat;
+  double? lon;
+  int? timestamp;
+  int amountStationsReady;
+
+  AdminReadinessEntry({required this.personId, this.lat, this.lon, this.timestamp, required this.amountStationsReady});
+
+  factory AdminReadinessEntry.fromPerson(Person person) {
+    int amountStationsReady = 0;
+    for (var response in person.response.values) {
+      if (response.shouldNotify(person.id)) {
+        amountStationsReady++;
+      }
+    }
+
+    double? lat;
+    double? lon;
+    int? timestamp;
+    if (PersonInterface.globalLocations.containsKey(person.id)) {
+      lat = PersonInterface.globalLocations[person.id]!.lat;
+      lon = PersonInterface.globalLocations[person.id]!.lon;
+      timestamp = PersonInterface.globalLocations[person.id]!.time;
+    }
+
+    return AdminReadinessEntry(
+      personId: person.id,
+      amountStationsReady: amountStationsReady,
+      lat: lat,
+      lon: lon,
+      timestamp: timestamp,
+    );
+  }
+
+  @override
+  String toString() {
+    return "$personId:$amountStationsReady:${lat ?? 0}:${lon ?? 0}:${timestamp ?? 0}";
   }
 }

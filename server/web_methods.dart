@@ -34,6 +34,7 @@ abstract class WebMethods {
     "alarmDelete": WebInterface.alarmDelete,
     "getCoordinates": WebInterface.getCoordinates,
     "getAddress": WebInterface.getAddress,
+    "getReadiness": WebInterface.getReadiness,
   };
 }
 

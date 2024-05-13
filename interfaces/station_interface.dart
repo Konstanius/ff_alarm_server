@@ -128,6 +128,8 @@ abstract class StationInterface {
         }
       }
 
+      toRemove.response.remove(stationId);
+
       await Person.update(toRemove);
     }
 
