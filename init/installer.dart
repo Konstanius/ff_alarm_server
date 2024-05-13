@@ -442,7 +442,7 @@ Future<void> install() async {
     outln("Error: ${result.stderr}", Color.error);
     return;
   }
-  result = await Process.run("flutter", ["build", "web", "--base-href", "/panel/"]);
+  result = await Process.run("flutter", ["build", "web", "--base-href", "/panel/"]); // flutter build web --base-href /panel/
   if (result.exitCode != 0) {
     outln("Failed to build the web panel.", Color.error);
     outln("Error: ${result.stderr}", Color.error);
@@ -451,21 +451,21 @@ Future<void> install() async {
   Directory.current = Directory.current.parent;
 
   // copy the entire ./panel/ folder recursively to /var/www/panel/
-  result = await Process.run("docker", ["exec", "ff_alarm_nginx", "mkdir", "-p", "/var/www/panel"]);
+  result = await Process.run("docker", ["exec", "ff_alarm_nginx", "mkdir", "-p", "/var/www/panel"]); // docker exec ff_alarm_nginx mkdir -p /var/www/panel
   if (result.exitCode != 0) {
     outln("Failed to create the web panel directory.", Color.error);
     outln("Error: ${result.stderr}", Color.error);
     return;
   }
 
-  result = await Process.run("docker", ["cp", "panel/build/web/.", "ff_alarm_nginx:/var/www/panel"]);
+  result = await Process.run("docker", ["cp", "panel/build/web/.", "ff_alarm_nginx:/var/www/panel"]); // docker cp panel/build/web/. ff_alarm_nginx:/var/www/panel
   if (result.exitCode != 0) {
     outln("Failed to copy the web panel files.", Color.error);
     outln("Error: ${result.stderr}", Color.error);
     return;
   }
 
-  result = await Process.run("docker", ["restart", "ff_alarm_nginx"]);
+  result = await Process.run("docker", ["restart", "ff_alarm_nginx"]); // docker restart ff_alarm_nginx
   if (result.exitCode != 0) {
     outln("Failed to restart the Nginx container.", Color.error);
     outln("Error: ${result.stderr}", Color.error);
