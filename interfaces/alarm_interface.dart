@@ -251,43 +251,4 @@ abstract class AlarmInterface {
 
     await callback(HttpStatus.ok, response);
   }
-
-  static Future<void> sendExample(Person person, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
-    String type = data["type"];
-    String word = data["word"];
-    int number = data["number"];
-    String address = data["address"];
-    List<dynamic> units = data["units"];
-
-    var personStations = await Station.getForPerson(person.id);
-    bool admin = false;
-    for (var station in personStations) {
-      if (station.adminPersons.contains(person.id)) {
-        admin = true;
-        break;
-      }
-    }
-    if (!admin) {
-      await callback(HttpStatus.forbidden, {"message": "Du bist nicht berechtigt, Alarmierungen zu erstellen."});
-      return;
-    }
-
-    Alarm alarm = Alarm(
-      id: 0,
-      type: type,
-      word: word,
-      date: DateTime.now(),
-      number: number,
-      address: address,
-      notes: [],
-      units: units.cast<int>(),
-      updated: DateTime.now(),
-      responses: {},
-    );
-    await Alarm.insert(alarm);
-
-    await alarm.sendFCMInformation();
-
-    await callback(HttpStatus.ok, {"message": "Alarmierung erfolgreich erstellt."});
-  }
 }

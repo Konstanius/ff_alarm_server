@@ -1,5 +1,4 @@
 import '../interfaces/alarm_interface.dart';
-import '../interfaces/alarms/test_alarm.dart';
 import '../interfaces/guest_interface.dart';
 import '../interfaces/person_interface.dart';
 import '../interfaces/station_interface.dart';
@@ -29,8 +28,6 @@ abstract class AuthMethods {
     "alarmGet": AlarmInterface.fetchSingle,
     "alarmSetResponse": AlarmInterface.setResponse,
     "alarmGetDetails": AlarmInterface.getDetails,
-    "alarmSendExample": AlarmInterface.sendExample,
-    "test": sendTestAlarms,
   };
 
   static const Map<String, Future<void> Function(Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback)> guestMethods = {
