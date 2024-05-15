@@ -450,9 +450,15 @@ class AdminReadinessEntry {
     double? lon;
     int? timestamp;
     if (PersonInterface.globalLocations.containsKey(person.id)) {
-      lat = PersonInterface.globalLocations[person.id]!.lat;
-      lon = PersonInterface.globalLocations[person.id]!.lon;
-      timestamp = PersonInterface.globalLocations[person.id]!.time;
+      if (person.response.values.every((element) => element.geofencing.isEmpty)) {
+        PersonInterface.globalLocations.remove(person.id);
+      } else if (DateTime.now().millisecondsSinceEpoch - PersonInterface.globalLocations[person.id]!.time > 43200000) {
+        PersonInterface.globalLocations.remove(person.id);
+      } else {
+        lat = PersonInterface.globalLocations[person.id]!.lat;
+        lon = PersonInterface.globalLocations[person.id]!.lon;
+        timestamp = PersonInterface.globalLocations[person.id]!.time;
+      }
     }
 
     return AdminReadinessEntry(
