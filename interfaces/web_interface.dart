@@ -8,6 +8,7 @@ import '../models/station.dart';
 import '../models/unit.dart';
 import '../server/web_methods.dart';
 import '../utils/console.dart';
+import '../utils/database.dart';
 import 'person_interface.dart';
 
 abstract class WebInterface {
@@ -78,7 +79,25 @@ abstract class WebInterface {
   }
 
   static Future<void> unitDelete(WebSession session, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
-    // TODO
+    int id = data["id"];
+    var unit = await Unit.getById(id);
+    if (unit == null) {
+      await callback(HttpStatus.notFound, {"message": "Einheit nicht gefunden."});
+      return;
+    }
+
+    await Unit.deleteById(id);
+
+    var now = DateTime.now();
+    await Database.connection.query(
+      "UPDATE persons SET updated = @now, allowedunits = array_remove(allowedunits, $id) WHERE $id = any(allowedunits)",
+      substitutionValues: {"now": now.millisecondsSinceEpoch},
+    );
+    await Database.connection.query(
+      "UPDATE persons SET updated = @now, allowedunits = array_remove(allowedunits, -$id) WHERE $id = any(allowedunits)",
+      substitutionValues: {"now": now.millisecondsSinceEpoch},
+    );
+
     await callback(HttpStatus.ok, {});
   }
 
@@ -426,6 +445,97 @@ abstract class WebInterface {
     }
 
     await callback(HttpStatus.ok, {"readiness": readiness.map((e) => e.toString()).toList()});
+  }
+
+  static Future<void> sendAlarm(WebSession session, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
+    String type = data["type"];
+    String word = data["word"];
+    int number = data["number"];
+    String address = data["address"];
+    List<dynamic> units = data["units"];
+    List<dynamic> notes = data["notes"];
+
+    Alarm alarm = Alarm(
+      id: 0,
+      type: type,
+      word: word,
+      date: DateTime.now(),
+      number: number,
+      address: address,
+      notes: notes.cast<String>(),
+      units: units.cast<int>(),
+      updated: DateTime.now(),
+      responses: {},
+    );
+    await Alarm.insert(alarm);
+
+    await alarm.sendFCMInformation();
+
+    await callback(HttpStatus.ok, alarm.toJson());
+  }
+
+  static Future<void> getReadinessForUnits(WebSession session, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
+    List<dynamic> units = data["units"];
+
+    Map<String, dynamic> response = {
+      "ready": {"": 0},
+      "unknown": {"": 0},
+      "notReady": {"": 0},
+    };
+
+    var alarm = Alarm(
+      id: 0,
+      type: "",
+      word: "",
+      date: DateTime.now(),
+      number: 0,
+      address: "",
+      notes: [],
+      units: units.cast<int>(),
+      updated: DateTime.now(),
+      responses: {},
+    );
+
+    var personIds = await alarm.getInvolvedPersonIds();
+    var persons = await Person.getByIds(personIds);
+
+    DateTime now = DateTime.now();
+    int day = now.weekday;
+    int dayMillis = now.hour * 3600000 + now.minute * 60000 + now.second * 1000 + now.millisecond;
+
+    var stations = await Station.getByIds(units.map((e) => e.stationId).toSet().cast<int>());
+
+    for (var person in persons) {
+      for (var station in stations) {
+        if (!station.persons.contains(person.id)) continue;
+
+        NotifyInformation notifyMode = person.response[station.id]?.getNotifyMode(person.id, now, dayMillis, day) ?? NotifyInformation.unknown;
+        String key;
+        switch (notifyMode) {
+          case NotifyInformation.yes:
+            key = "ready";
+            break;
+          case NotifyInformation.no:
+            key = "notReady";
+            break;
+          case NotifyInformation.unknown:
+            key = "unknown";
+            break;
+        }
+
+        List<String> activeQualifications = person.visibleQualificationsAt(now).map((e) => e.type).toList();
+        response[key]![""] = (response[key]![""] as int) + 1;
+        for (var qualification in activeQualifications) {
+          if (!response[key]!.containsKey(qualification)) {
+            response[key]![qualification] = 1;
+          } else {
+            response[key]![qualification] = (response[key]![qualification] as int) + 1;
+          }
+        }
+      }
+    }
+
+    await callback(HttpStatus.ok, response);
   }
 }
 

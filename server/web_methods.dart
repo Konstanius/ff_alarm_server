@@ -35,6 +35,8 @@ abstract class WebMethods {
     "getCoordinates": WebInterface.getCoordinates,
     "getAddress": WebInterface.getAddress,
     "getReadiness": WebInterface.getReadiness,
+    "sendAlarm": WebInterface.sendAlarm,
+    "getReadinessForUnits": WebInterface.getReadinessForUnits,
   };
 }
 
