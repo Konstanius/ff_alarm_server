@@ -503,7 +503,7 @@ abstract class WebInterface {
     int day = now.weekday;
     int dayMillis = now.hour * 3600000 + now.minute * 60000 + now.second * 1000 + now.millisecond;
 
-    var stations = await Station.getByIds(units.map((e) => e.stationId).toSet().cast<int>());
+    var stations = await Station.getByIds(alarm.units);
 
     for (var person in persons) {
       for (var station in stations) {
