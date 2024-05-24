@@ -137,13 +137,18 @@ abstract class PersonInterface {
     List<Qualification> qs = [];
     Set<String> qSet = {};
     for (String q in qualifications) {
-      String withoutLeadingUnderscore = q.startsWith("_") ? q.substring(1) : q;
-      if (qSet.contains(withoutLeadingUnderscore)) {
+      var qualification = Qualification.fromString(q);
+      if (qualification.type.isEmpty || qualification.type.length > 100) {
+        await callback(HttpStatus.badRequest, {"message": "Qualifikationen dürfen nicht leer sein und nicht länger als 100 Zeichen sein."});
+        return;
+      }
+
+      String typeWithoutLeadingUnderscore = qualification.type.startsWith("_") ? qualification.type.substring(1) : qualification.type;
+      if (qSet.contains(typeWithoutLeadingUnderscore)) {
         await callback(HttpStatus.badRequest, {"message": "Qualifikationen dürfen nicht doppelt vorkommen."});
         return;
       }
-      qs.add(Qualification.fromString(q));
-      qSet.add(withoutLeadingUnderscore);
+      qs.add(qualification);
     }
 
     var stationUnits = await Unit.getByStationId(stationId);
@@ -271,13 +276,18 @@ abstract class PersonInterface {
     List<Qualification> qs = [];
     Set<String> qSet = {};
     for (String q in qualifications) {
-      String withoutLeadingUnderscore = q.startsWith("_") ? q.substring(1) : q;
-      if (qSet.contains(withoutLeadingUnderscore)) {
+      var qualification = Qualification.fromString(q);
+      if (qualification.type.isEmpty || qualification.type.length > 100) {
+        await callback(HttpStatus.badRequest, {"message": "Qualifikationen dürfen nicht leer sein und nicht länger als 100 Zeichen sein."});
+        return;
+      }
+
+      String typeWithoutLeadingUnderscore = qualification.type.startsWith("_") ? qualification.type.substring(1) : qualification.type;
+      if (qSet.contains(typeWithoutLeadingUnderscore)) {
         await callback(HttpStatus.badRequest, {"message": "Qualifikationen dürfen nicht doppelt vorkommen."});
         return;
       }
-      qs.add(Qualification.fromString(q));
-      qSet.add(withoutLeadingUnderscore);
+      qs.add(qualification);
     }
 
     Person? editPerson = await Person.getById(personId);
