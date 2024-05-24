@@ -184,7 +184,8 @@ class Person {
       substitutionValues: person.toDatabase(),
     );
     person.id = result[0][0];
-    Person.broadcastChange(person);
+    // delay this async because the person will need a short second to be added to a station
+    Future.delayed(Duration(milliseconds: 100), () => Person.broadcastChange(person));
   }
 
   static Future<void> update(Person person) async {
