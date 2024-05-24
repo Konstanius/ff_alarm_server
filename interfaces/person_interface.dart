@@ -6,7 +6,6 @@ import '../models/person.dart';
 import '../models/station.dart';
 import '../models/unit.dart';
 import '../utils/config.dart';
-import '../utils/console.dart';
 import '../utils/generic.dart';
 
 abstract class PersonInterface {
@@ -85,8 +84,6 @@ abstract class PersonInterface {
     double lat = data["a"];
     double lon = data["o"];
     int time = data["t"];
-
-    outln("Setting location for ${person.id} to $lat, $lon at $time", Color.verbose);
 
     var last = globalLocations[person.id];
     if (last != null && last.time > time) {
@@ -329,7 +326,7 @@ abstract class PersonInterface {
     String lastName = data["lastName"].trim();
 
     var stations = await Station.getForPerson(person.id);
-    if(!stations.any((element) => element.adminPersons.contains(person.id))) {
+    if (!stations.any((element) => element.adminPersons.contains(person.id))) {
       await callback(HttpStatus.forbidden, {"message": "Du bist nicht berechtigt, Personen zu suchen."});
       return;
     }
