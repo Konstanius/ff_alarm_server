@@ -180,7 +180,7 @@ class Person {
   static Future<void> insert(Person person) async {
     person.updated = DateTime.now();
     var result = await Database.connection.query(
-      "INSERT INTO persons (firstname, lastname, birthday, allowedunits, qualifications, fcmtokens, registrationkey, response, updated) VALUES @firstname, @lastname, @birthday, @allowedunits, @qualifications, @fcmtokens, @registrationkey, @response, @updated RETURNING id;",
+      "INSERT INTO persons (firstname, lastname, birthday, allowedunits, qualifications, fcmtokens, registrationkey, response, updated) VALUES (@firstname, @lastname, @birthday, @allowedunits, @qualifications, @fcmtokens, @registrationkey, @response, @updated) RETURNING id;",
       substitutionValues: person.toDatabase(),
     );
     person.id = result[0][0];
