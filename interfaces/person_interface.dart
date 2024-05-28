@@ -83,15 +83,8 @@ abstract class PersonInterface {
   static Future<void> setLocation(Person person, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
     double lat = data["a"];
     double lon = data["o"];
-    int time = data["t"];
 
-    var last = globalLocations[person.id];
-    if (last != null && last.time > time) {
-      callback(HttpStatus.ok, {});
-      return;
-    }
-
-    globalLocations[person.id] = (lat: lat, lon: lon, time: time);
+    globalLocations[person.id] = (lat: lat, lon: lon, time: DateTime.now().millisecondsSinceEpoch);
 
     callback(HttpStatus.ok, {});
   }
