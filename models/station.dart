@@ -1,5 +1,5 @@
 
-import '../server/init.dart';
+import '../server/app_realtime.dart';
 import '../utils/config.dart';
 import '../utils/database.dart';
 
@@ -179,14 +179,14 @@ class Station {
 
   static Future<void> broadcastChange(Station station) async {
     var json = station.toJson();
-    for (var connection in realtimeConnections) {
+    for (var connection in AppRealtimeConnection.connections) {
       if (!station.persons.contains(connection.person.id)) continue;
       connection.send("station", json);
     }
   }
 
   static Future<void> broadcastDelete(int id) async {
-    for (var connection in realtimeConnections) {
+    for (var connection in AppRealtimeConnection.connections) {
       connection.send("station_delete", {"id": id});
     }
   }

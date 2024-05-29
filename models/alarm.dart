@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:postgres/src/execution_context.dart';
 
 import '../firebase/fcm_service.dart';
-import '../server/init.dart';
+import '../server/app_realtime.dart';
 import '../utils/config.dart';
 import '../utils/database.dart';
 import 'person.dart';
@@ -242,14 +242,14 @@ class Alarm {
     var involvedPersonIds = await alarm.getInvolvedPersonIds();
 
     var json = alarm.toJson();
-    for (var connection in realtimeConnections) {
+    for (var connection in AppRealtimeConnection.connections) {
       if (!involvedPersonIds.contains(connection.person.id)) continue;
       connection.send("alarm", json);
     }
   }
 
   static Future<void> broadcastDelete(int alarmId) async {
-    for (var connection in realtimeConnections) {
+    for (var connection in AppRealtimeConnection.connections) {
       connection.send("alarm_delete", {"id": alarmId});
     }
   }

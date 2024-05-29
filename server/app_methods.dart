@@ -5,7 +5,7 @@ import '../interfaces/station_interface.dart';
 import '../interfaces/unit_interface.dart';
 import '../models/person.dart';
 
-abstract class AuthMethods {
+abstract class AppMethods {
   static const Map<String, Future<void> Function(Person person, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback)> authMethods = {
     "stationGetAll": StationInterface.getAll,
     "stationGetNotifyModes": StationInterface.getNotifyModes,

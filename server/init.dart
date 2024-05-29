@@ -3,15 +3,20 @@ import 'dart:io';
 
 import 'package:intl/intl.dart';
 
+import '../models/backend/monitor.dart';
 import '../models/backend/session.dart';
 import '../models/person.dart';
 import '../utils/console.dart';
 import '../utils/generic.dart';
 import 'app_methods.dart';
+import 'app_realtime.dart';
+import 'monitor_methods.dart';
+import 'monitor_realtime.dart';
 import 'web_methods.dart';
 
 Future<void> initServer() async {
-  startRealtimeWatchThread();
+  AppRealtimeConnection.startRealtimeWatchThread();
+  MonitorRealtimeConnection.startRealtimeWatchThread();
 
   String oldLog = "";
   if (File('logs/latest.log').existsSync()) {
@@ -89,7 +94,7 @@ Future<void> initServer() async {
           return;
         }
 
-        var method = AuthMethods.guestMethods[keyword];
+        var method = AppMethods.guestMethods[keyword];
         if (method == null) {
           await callback(HttpStatus.notFound, {"message": "Die angeforderte Resource wurde nicht gefunden."});
           return;
@@ -201,12 +206,53 @@ Future<void> initServer() async {
       String key = authParts[1];
 
       if (sessionId < 0) {
-        /// TODO implement API authentication from monitors
         /// Interfaces that are required:
         /// - alarmGetActive
         /// - alarmGetDetails
         /// - stationGetStats
         /// - unitGetAll
+        int properId = -sessionId;
+        Monitor? monitor = await Monitor.getById(properId);
+        if (monitor == null) {
+          await callback(HttpStatus.unauthorized, {"message": "Kein Zugriff auf diese Resource."});
+          return;
+        }
+
+        bool valid = await monitor.validate(key);
+        if (!valid) {
+          request.response.statusCode = HttpStatus.unauthorized;
+          await request.response.flush();
+          await request.response.close();
+          return;
+        }
+
+        /// TODO implement API authentication from monitors
+        var method = MonitorMethods.authMethods[keyword];
+        if (method == null) {
+          await callback(HttpStatus.notFound, {"message": "Die angeforderte Resource wurde nicht gefunden."});
+          return;
+        }
+
+        Map<String, dynamic>? data;
+        try {
+          String boundRequest = await utf8.decoder.bind(request).join();
+          data = json.decode(boundRequest);
+        } catch (e) {
+          await callback(HttpStatus.badRequest, {"message": "Die Anfrage konnte nicht verarbeitet werden."});
+          return;
+        }
+
+        try {
+          await method(monitor, data!, callback);
+        } on RequestException catch (e) {
+          await callback(e.statusCode, {"message": e.message});
+        } catch (e, s) {
+          request.response.statusCode = HttpStatus.internalServerError;
+          outln("Internal server error: $e\n$s", Color.error);
+          request.response.add(utf8.encode(json.encode({"message": "Ein interner Serverfehler ist aufgetreten."})));
+          await request.response.flush();
+          await request.response.close();
+        }
         return;
       }
 
@@ -228,7 +274,7 @@ Future<void> initServer() async {
         return;
       }
 
-      var method = AuthMethods.authMethods[keyword];
+      var method = AppMethods.authMethods[keyword];
       if (method == null) {
         await callback(HttpStatus.notFound, {"message": "Die angeforderte Resource wurde nicht gefunden."});
         return;
@@ -275,105 +321,6 @@ Future<void> initServer() async {
   });
 }
 
-List<RealtimeConnection> realtimeConnections = [];
-
-class RealtimeConnection {
-  Session session;
-  Person person;
-  WebSocket socket;
-  late Stream stream;
-  late DateTime created;
-  late DateTime lastActive;
-  bool controller = false;
-
-  RealtimeConnection(this.session, this.person, this.socket) {
-    created = DateTime.now();
-    lastActive = DateTime.now();
-    stream = socket.asBroadcastStream();
-
-    realtimeConnections.add(this);
-  }
-
-  void close({bool timeout = false, bool replaced = false, bool kicked = false}) {
-    socket.close();
-  }
-
-  void send(String event, Map<String, dynamic> data) {
-    try {
-      socket.addUtf8Text(utf8.encode((jsonEncode({'event': event, 'data': data}))));
-    } catch (_) {
-      close();
-    }
-  }
-
-  void listen() {
-    stream.listen((event) async {
-      try {
-        String eventString;
-        if (event is String) {
-          eventString = event;
-        } else if (event is List<int>) {
-          eventString = utf8.decode(event);
-        } else {
-          return;
-        }
-
-        lastActive = DateTime.now();
-
-        Map<String, dynamic> json = jsonDecode(eventString);
-        String type = json['t'];
-
-        // TODO
-      } catch (e, s) {
-        outln('Data: $event', Color.error);
-        outln(e.toString(), Color.warn);
-        outln(s.toString(), Color.warn);
-      }
-    });
-  }
-
-  bool check() {
-    try {
-      if (DateTime.now().difference(lastActive).inSeconds > 20) {
-        close(timeout: true);
-        return false;
-      } else {
-        try {
-          socket.addUtf8Text(utf8.encode('{}'));
-        } catch (e) {
-          close();
-          return false;
-        }
-      }
-
-      return true;
-    } catch (e) {
-      close();
-      outln('Error in Realtime-Server: $e', Color.error);
-      return false;
-    }
-  }
-}
-
-Future<Never> startRealtimeWatchThread() async {
-  while (true) {
-    try {
-      await Future.delayed(const Duration(seconds: 3));
-      List<RealtimeConnection> removeList = [];
-      for (int i = 0; i < realtimeConnections.length; i++) {
-        if (!realtimeConnections[i].check()) {
-          removeList.add(realtimeConnections[i]);
-        }
-      }
-      for (int i = 0; i < removeList.length; i++) {
-        realtimeConnections.remove(removeList[i]);
-      }
-    } catch (e) {
-      outln('Error in Realtime-Server: $e', Color.error);
-    }
-  }
-}
-
 Future<void> handleRealtime(HttpRequest request) async {
   try {
     String? rawAuth = request.headers.value('authorization');
@@ -400,8 +347,45 @@ Future<void> handleRealtime(HttpRequest request) async {
       return;
     }
 
-    int sessionId = int.parse(authParts[0]);
+    int? sessionId = int.tryParse(authParts[0]);
+    if (sessionId == null) {
+      request.response.statusCode = HttpStatus.badRequest;
+      await request.response.flush();
+      await request.response.close();
+      return;
+    }
     String key = authParts[1];
+
+    if (sessionId < 0) {
+      int properId = -sessionId;
+      Monitor? monitor = await Monitor.getById(properId);
+      if (monitor == null) {
+        request.response.statusCode = HttpStatus.unauthorized;
+        await request.response.flush();
+        await request.response.close();
+        return;
+      }
+
+      bool valid = await monitor.validate(key);
+      if (!valid) {
+        request.response.statusCode = HttpStatus.unauthorized;
+        await request.response.flush();
+        await request.response.close();
+        return;
+      }
+
+      if (WebSocketTransformer.isUpgradeRequest(request)) {
+        request.response.bufferOutput = false;
+        WebSocket webSocket = await WebSocketTransformer.upgrade(request);
+        MonitorRealtimeConnection connection = MonitorRealtimeConnection(monitor, webSocket);
+        connection.listen();
+      } else {
+        request.response.statusCode = HttpStatus.badRequest;
+        await request.response.flush();
+        await request.response.close();
+      }
+      return;
+    }
 
     Session? session = await Session.getById(sessionId);
     if (session == null) {
@@ -430,7 +414,7 @@ Future<void> handleRealtime(HttpRequest request) async {
     if (WebSocketTransformer.isUpgradeRequest(request)) {
       request.response.bufferOutput = false;
       WebSocket webSocket = await WebSocketTransformer.upgrade(request);
-      RealtimeConnection connection = RealtimeConnection(session, person, webSocket);
+      AppRealtimeConnection connection = AppRealtimeConnection(session, person, webSocket);
       connection.listen();
     } else {
       request.response.statusCode = HttpStatus.badRequest;

@@ -1,4 +1,4 @@
-import '../server/init.dart';
+import '../server/app_realtime.dart';
 import '../utils/config.dart';
 import '../utils/database.dart';
 import 'person.dart';
@@ -215,14 +215,14 @@ class Unit {
 
   static Future<void> broadcastChange(Unit unit) async {
     var json = unit.toJson();
-    for (var connection in realtimeConnections) {
+    for (var connection in AppRealtimeConnection.connections) {
       if (!connection.person.allowedUnits.contains(unit.id)) continue;
       connection.send("unit", json);
     }
   }
 
   static Future<void> broadcastDelete(int id) async {
-    for (var connection in realtimeConnections) {
+    for (var connection in AppRealtimeConnection.connections) {
       connection.send("unit_delete", {"id": id});
     }
   }

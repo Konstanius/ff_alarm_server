@@ -1,5 +1,5 @@
 import '../interfaces/person_interface.dart';
-import '../server/init.dart';
+import '../server/app_realtime.dart';
 import '../utils/config.dart';
 import '../utils/database.dart';
 import '../utils/generic.dart';
@@ -229,14 +229,14 @@ class Person {
     var involvedPersonIds = await personsThatCanSee(person.id);
 
     var json = person.toJson();
-    for (var connection in realtimeConnections) {
+    for (var connection in AppRealtimeConnection.connections) {
       if (!involvedPersonIds.contains(connection.person.id)) continue;
       connection.send("person", json);
     }
   }
 
   static Future<void> broadcastDelete(int personId) async {
-    for (var connection in realtimeConnections) {
+    for (var connection in AppRealtimeConnection.connections) {
       connection.send("person_delete", {"id": personId});
     }
   }

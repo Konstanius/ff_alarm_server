@@ -1,4 +1,4 @@
-import '../../server/init.dart';
+import '../../server/app_realtime.dart';
 import '../../utils/database.dart';
 import '../../utils/generic.dart';
 
@@ -101,7 +101,7 @@ class Session {
     expiresAt = DateTime.now();
     await update(this);
 
-    for (var connection in realtimeConnections) {
+    for (var connection in AppRealtimeConnection.connections) {
       if (connection.session.id == id) {
         try {
           connection.close();
