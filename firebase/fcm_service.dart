@@ -7,7 +7,6 @@ import '../utils/database.dart';
 IOSink? fcmStream;
 
 Future<void> startFCMService() async {
-  outln("Starting FCM service", Color.info);
   Process process = await Process.start(
     'java',
     [
@@ -84,8 +83,6 @@ Future<void> startFCMService() async {
   });
 
   fcmStream = process.stdin;
-
-  outln("FCM service started", Color.success);
 }
 
 Future<List<int>> invokeSDK(

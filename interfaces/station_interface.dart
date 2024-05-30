@@ -1,8 +1,10 @@
 import 'dart:io';
 
+import '../models/backend/monitor.dart';
 import '../models/person.dart';
 import '../models/station.dart';
 import '../models/unit.dart';
+import '../utils/generic.dart';
 
 abstract class StationInterface {
   static Future<void> getAll(Person person, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
@@ -209,5 +211,78 @@ abstract class StationInterface {
     await Station.update(station);
 
     await callback(HttpStatus.ok, station.toJson());
+  }
+
+  static Future<void> generateMonitor(Person person, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
+    int stationId = data["stationId"];
+    List<int> units = data["units"].cast<int>();
+    String name = data["name"];
+
+    var station = await Station.getById(stationId);
+    if (station == null) {
+      await callback(HttpStatus.notFound, {"message": "Die Wache wurde nicht gefunden."});
+      return;
+    }
+    if (!station.adminPersons.contains(person.id)) {
+      await callback(HttpStatus.forbidden, {"message": "Du bist nicht berechtigt, auf diese Wache zuzugreifen."});
+      return;
+    }
+
+    List<Unit> unitsList = await Unit.getByStationId(stationId);
+    for (var unit in units) {
+      if (!unitsList.any((element) => element.id == unit)) {
+        await callback(HttpStatus.notFound, {"message": "Eine der ausgeählten Einheiten wurde nicht innerhalb der Wache gefunden."});
+        return;
+      }
+    }
+
+    String token;
+    while (true) {
+      token = HashUtils.generateRandomKey();
+      if (!Monitor.preparedMonitors.containsKey(token)) break;
+    }
+    String hash = HashUtils.lightHash(token);
+
+    Monitor monitor = Monitor(
+      id: 0,
+      name: name,
+      stationId: stationId,
+      units: units,
+      tokenHash: hash,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+      expiresAt: DateTime.now().add(const Duration(days: 60)),
+    );
+    Monitor.preparedMonitors[token] = monitor;
+
+    // remove from preparedMonitors where > 10m ago
+    DateTime ago = DateTime.now().subtract(const Duration(minutes: 10));
+    Monitor.preparedMonitors.removeWhere((key, value) => value.createdAt.isBefore(ago));
+
+    await callback(HttpStatus.ok, {"token": token});
+  }
+
+  static Future<void> checkMonitor(Person person, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
+    String token = data["token"];
+
+    Monitor? monitor = Monitor.preparedMonitors[token];
+    if (monitor == null) {
+      await callback(HttpStatus.ok, {"check": false});
+      return;
+    }
+
+    await callback(HttpStatus.ok, {"check": monitor.id != 0});
+  }
+
+  static Future<void> listMonitors(Person person, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
+    // TODO
+  }
+
+  static Future<void> updateMonitor(Person person, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
+    // TODO
+  }
+
+  static Future<void> removeMonitor(Person person, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
+    // TODO
   }
 }

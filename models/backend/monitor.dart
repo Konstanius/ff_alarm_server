@@ -2,6 +2,8 @@ import '../../utils/database.dart';
 import '../../utils/generic.dart';
 
 class Monitor {
+  static final Map<String, Monitor> preparedMonitors = {};
+
   int id;
   String name;
   int stationId;
@@ -45,6 +47,18 @@ class Monitor {
       "created_at": createdAt.millisecondsSinceEpoch,
       "updated_at": updatedAt.millisecondsSinceEpoch,
       "expires_at": expiresAt.millisecondsSinceEpoch,
+    };
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      "id": id,
+      "name": name,
+      "stationId": stationId,
+      "units": units,
+      "createdAt": createdAt.millisecondsSinceEpoch,
+      "updatedAt": updatedAt.millisecondsSinceEpoch,
+      "expiresAt": expiresAt.millisecondsSinceEpoch,
     };
   }
 
