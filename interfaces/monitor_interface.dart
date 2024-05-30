@@ -18,6 +18,6 @@ abstract class MonitorInterface {
   }
 
   static Future<void> ping(Monitor monitor, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
-    await callback(200, {});
+    await callback(HttpStatus.ok, {});
   }
 }

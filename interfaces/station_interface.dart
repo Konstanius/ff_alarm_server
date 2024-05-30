@@ -215,7 +215,7 @@ abstract class StationInterface {
 
   static Future<void> generateMonitor(Person person, Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback) async {
     int stationId = data["stationId"];
-    List<int> units = data["units"].cast<int>();
+    List<int> units = data["units"].cast<int>().toSet().toList();
     String name = data["name"];
 
     var station = await Station.getById(stationId);
