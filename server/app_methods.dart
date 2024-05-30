@@ -1,5 +1,6 @@
 import '../interfaces/alarm_interface.dart';
 import '../interfaces/guest_interface.dart';
+import '../interfaces/monitor_interface.dart';
 import '../interfaces/person_interface.dart';
 import '../interfaces/station_interface.dart';
 import '../interfaces/unit_interface.dart';
@@ -38,5 +39,6 @@ abstract class AppMethods {
   static const Map<String, Future<void> Function(Map<String, dynamic> data, Function(int statusCode, Map<String, dynamic> response) callback)> guestMethods = {
     "login": GuestInterface.login,
     "logout": GuestInterface.logout,
+    "register": MonitorInterface.register,
   };
 }

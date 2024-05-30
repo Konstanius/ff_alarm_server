@@ -226,7 +226,6 @@ Future<void> initServer() async {
           return;
         }
 
-        /// TODO implement API authentication from monitors
         var method = MonitorMethods.authMethods[keyword];
         if (method == null) {
           await callback(HttpStatus.notFound, {"message": "Die angeforderte Resource wurde nicht gefunden."});
